@@ -264,6 +264,18 @@ const tools: Tool[] = [
       'Export analysis reports'
     ]
   },
+  { 
+    icon: '🐝', 
+    title: 'Hive Orchestrator', 
+    desc: 'Multi-agent swarm orchestration powered by aden-hive/hive', 
+    action: 'hive-orchestrator',
+    uses: [
+      'Launch multi-agent swarms',
+      'Monitor live execution DAGs',
+      'Human-in-the-loop approvals',
+      'Stream real-time agent logs'
+    ]
+  },
 ];
 
 interface DevSpaceProps {

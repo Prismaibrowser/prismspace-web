@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react';
 import { NotepadPanel } from './tools/NotepadPanel';
 import { JsonToolkit } from './tools/JsonToolkit';
 import { ColorGenerator } from './tools/ColorGenerator';
+import { HiveOrchestrator } from './HiveOrchestrator';
 
 type PanelType = 'notepad' | 'json-toolkit' | 'crypto-utils' | 'regex-workbench' | 
   'markdown-editor' | 'git-reference' | 'time-date' | 'color-gen' | 'prompt-synthesizer' |
-  'writing-assistant' | 'language-learning' | 'code-explainer' | 'code-translator' | 'decision-analyzer';
+  'writing-assistant' | 'language-learning' | 'code-explainer' | 'code-translator' | 'decision-analyzer' |
+  'hive-orchestrator';
 
 interface PanelConfig {
   type: PanelType;
@@ -116,6 +118,13 @@ const panelConfigs: Record<PanelType, PanelConfig> = {
     position: 'right',
     width: '90%',
     iframeSrc: '/dev-space/decision-analyzer.html',
+  },
+  'hive-orchestrator': {
+    type: 'hive-orchestrator',
+    title: 'Hive Orchestrator',
+    position: 'full',
+    width: '92%',
+    component: HiveOrchestrator,
   },
 };
 

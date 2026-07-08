@@ -1,0 +1,18 @@
+# Python virtual environment — never commit
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Cloned Hive repo — tracked as a submodule (or ignored here)
+# To use as submodule: git submodule add https://github.com/aden-hive/hive.git hive-backend/hive
+hive/
+
+# Env / secrets
+.env
+*.env.local

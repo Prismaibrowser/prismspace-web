@@ -93,13 +93,7 @@ const ProgressBar = React.memo(({ currentTime, duration, onSeek }: ProgressBarPr
 });
 ProgressBar.displayName = 'ProgressBar';
 
-interface Track {
-  id: number;
-  title: string;
-  artist: string;
-  cover: string;
-  url: string;
-}
+// Note: Track type is imported from @/lib/musicData above.
 
 interface MusicPlayerProps {
   playlist?: Track[];

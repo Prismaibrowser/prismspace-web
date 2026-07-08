@@ -1,0 +1,26 @@
+/**
+ * app/api/hive/agents/[id]/approve/route.ts
+ * POST /api/hive/agents/:id/approve  — human-in-the-loop approve / reject
+ */
+import { NextRequest, NextResponse } from 'next/server';
+
+const HIVE_URL = process.env.HIVE_API_URL ?? 'http://localhost:7433';
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  try {
+    const body = await req.json();
+    const res = await fetch(`${HIVE_URL}/api/agents/${id}/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    return NextResponse.json(data, { status: res.status });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 503 });
+  }
+}
