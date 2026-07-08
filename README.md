@@ -15,9 +15,10 @@ An AI-powered developer dashboard and browser built with Next.js 15, React 19, T
 - 🛠️ **23 Developer Tools** - JSON toolkit, regex workbench, crypto utils, and more
 - 📝 **Productivity Suite** - Notepad, checklist, habit tracker, focus timer
 - 🤖 **6 AI Tools** - Writing assistant, code explainer, language learning
+- 🐝 **Hive Backend** - Local Python API powered by MCP (Model Context Protocol) for multi-agent orchestration
 - 📊 **System Monitor** - Real-time browser and system information
 - ⚙️ **11 Settings Sections** - Comprehensive customization options
-- ⚡ **Modern Stack** - Next.js 15, React 19, TypeScript, Tailwind CSS
+- ⚡ **Modern Stack** - Next.js 15, React 19, TypeScript, Tailwind CSS, Python (FastAPI)
 
 ## 🚀 Quick Start
 
@@ -25,6 +26,7 @@ An AI-powered developer dashboard and browser built with Next.js 15, React 19, T
 
 - Node.js 18+ installed
 - npm or pnpm package manager
+- Python 3.10+ installed (for the Hive API Backend)
 
 ### Installation
 
@@ -33,14 +35,17 @@ An AI-powered developer dashboard and browser built with Next.js 15, React 19, T
 git clone <your-repo-url>
 cd prismspace-web
 
-# Install dependencies
+# Install frontend dependencies
 npm install
 
-# Run development server
+# Run the Hive API Backend (in a PowerShell terminal)
+.\hive-backend\start.ps1
+
+# Run the Next.js development server (in a separate terminal)
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000) in your browser. The Hive Backend runs on [http://localhost:8000](http://localhost:8000).
 
 ## 📖 Documentation
 
@@ -106,15 +111,18 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ## 📦 Scripts
 
 ```bash
-# Development
-npm run dev          # Start dev server (http://localhost:3000)
+# Backend (PowerShell)
+.\hive-backend\start.ps1     # Starts Python virtual environment, installs dependencies, and runs FastAPI server on port 8000
 
-# Production
-npm run build        # Build for production
-npm start            # Start production server
+# Frontend Development
+npm run dev                  # Start Next.js dev server (http://localhost:3000)
 
-# Linting
-npm run lint         # Check code quality
+# Frontend Production
+npm run build                # Build Next.js app for production
+npm start                    # Start production server
+
+# Frontend Linting
+npm run lint                 # Check code quality
 ```
 
 ## 🎨 Customization
