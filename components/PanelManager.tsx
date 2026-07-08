@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { NotepadPanel } from './tools/NotepadPanel';
-import { JsonToolkit } from './tools/JsonToolkit';
 import { ColorGenerator } from './tools/ColorGenerator';
 import { AgentSwarm } from './AgentSwarm';
 
-type PanelType = 'notepad' | 'json-toolkit' | 
+type PanelType = 'notepad' | 
   'markdown-editor' | 'git-reference' | 'color-gen' | 'prompt-synthesizer' |
   'writing-assistant' | 'code-explainer' | 'code-translator' | 'decision-analyzer' |
   'agent-swarm';
@@ -27,13 +26,6 @@ const panelConfigs: Record<PanelType, PanelConfig> = {
     position: 'left',
     width: '500px',
     component: NotepadPanel,
-  },
-  'json-toolkit': {
-    type: 'json-toolkit',
-    title: 'JSON Toolkit',
-    position: 'left',
-    width: '550px',
-    component: JsonToolkit,
   },
 
   'markdown-editor': {

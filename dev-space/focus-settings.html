@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,31 +14,45 @@
             --muted: #94a3b8;
             --accent: #22c55e;
         }
-        * { box-sizing: border-box; }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             margin: 0;
             font-family: "Segoe UI", sans-serif;
             color: var(--text);
             background: radial-gradient(circle at top, #17303f 0%, var(--bg) 38%);
         }
+
         .app {
             min-height: 100vh;
             padding: 24px;
             display: grid;
             gap: 20px;
         }
+
         .shell {
             display: grid;
             grid-template-columns: 1.2fr 0.8fr;
             gap: 20px;
         }
+
         .panel {
             background: var(--panel);
             border: 1px solid var(--border);
             border-radius: 18px;
             padding: 20px;
         }
-        h1, h2, h3, p { margin: 0; }
+
+        h1,
+        h2,
+        h3,
+        p {
+            margin: 0;
+        }
+
         .hero {
             display: grid;
             place-items: center;
@@ -45,12 +60,14 @@
             gap: 18px;
             min-height: 520px;
         }
+
         .phase {
             font-size: 15px;
             letter-spacing: 0.2em;
             text-transform: uppercase;
             color: var(--muted);
         }
+
         .ring {
             width: 320px;
             height: 320px;
@@ -59,37 +76,48 @@
             place-items: center;
             background:
                 radial-gradient(circle at center, #0d1218 60%, transparent 61%),
-                conic-gradient(var(--accent) calc(var(--progress, 0) * 1%), rgba(255,255,255,0.08) 0);
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05), 0 20px 40px rgba(0,0,0,0.28);
+                conic-gradient(var(--accent) calc(var(--progress, 0) * 1%), rgba(255, 255, 255, 0.08) 0);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 20px 40px rgba(0, 0, 0, 0.28);
             position: relative;
         }
+
         .ring::after {
             content: "";
             position: absolute;
             inset: 18px;
             border-radius: 50%;
-            border: 1px solid rgba(255,255,255,0.06);
+            border: 1px solid rgba(255, 255, 255, 0.06);
         }
+
         .time {
             font-size: clamp(64px, 12vw, 92px);
             font-weight: 700;
             letter-spacing: -0.04em;
             line-height: 1;
         }
+
         .task {
             font-size: 17px;
             color: var(--muted);
             max-width: 280px;
             text-wrap: balance;
         }
-        .controls, .row, .stats-grid {
+
+        .controls,
+        .row,
+        .stats-grid {
             display: flex;
             gap: 12px;
             align-items: center;
             flex-wrap: wrap;
         }
-        .controls { justify-content: center; }
-        button, input {
+
+        .controls {
+            justify-content: center;
+        }
+
+        button,
+        input {
             font: inherit;
             color: inherit;
             background: #0e141a;
@@ -97,58 +125,112 @@
             border-radius: 12px;
             padding: 10px 14px;
         }
-        button { cursor: pointer; }
-        .primary { background: rgba(34, 197, 94, 0.16); border-color: rgba(34, 197, 94, 0.46); }
-        .dots { display: flex; gap: 8px; justify-content: center; }
+
+        button {
+            cursor: pointer;
+        }
+
+        .primary {
+            background: rgba(34, 197, 94, 0.16);
+            border-color: rgba(34, 197, 94, 0.46);
+        }
+
+        .dots {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+
         .dot {
             width: 12px;
             height: 12px;
             border-radius: 999px;
             border: 1px solid var(--border);
-            background: rgba(255,255,255,0.06);
+            background: rgba(255, 255, 255, 0.06);
         }
-        .dot.done { background: var(--accent); border-color: rgba(34,197,94,0.5); }
+
+        .dot.done {
+            background: var(--accent);
+            border-color: rgba(34, 197, 94, 0.5);
+        }
+
         .settings-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 14px;
             margin-top: 18px;
         }
-        label { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
-        input[type="number"], input[type="text"] { width: 100%; }
-        .stats-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+        label {
+            display: grid;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        input[type="number"],
+        input[type="text"] {
+            width: 100%;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
         .stat {
             padding: 14px;
             border-radius: 14px;
             border: 1px solid var(--border);
-            background: rgba(255,255,255,0.03);
+            background: rgba(255, 255, 255, 0.03);
         }
-        .stat strong { display: block; font-size: 28px; margin-top: 8px; }
+
+        .stat strong {
+            display: block;
+            font-size: 28px;
+            margin-top: 8px;
+        }
+
         .minimal .settings-panel,
         .minimal .stats-panel,
         .minimal .header-row,
         .minimal .task-input-wrap {
             display: none !important;
         }
+
         .minimal .shell {
             grid-template-columns: 1fr;
         }
+
         .minimal .hero {
             min-height: calc(100vh - 48px);
         }
+
         @media (max-width: 980px) {
-            .shell { grid-template-columns: 1fr; }
-            .ring { width: 260px; height: 260px; }
-            .settings-grid, .stats-grid { grid-template-columns: 1fr; }
+            .shell {
+                grid-template-columns: 1fr;
+            }
+
+            .ring {
+                width: 260px;
+                height: 260px;
+            }
+
+            .settings-grid,
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="app" id="app">
         <div class="header-row row" style="justify-content:space-between;">
             <div>
                 <h1>Focus Timer</h1>
-                <p style="color:var(--muted); margin-top:6px;">Pomodoro timer with daily stats, generated bell tones, and minimal mode.</p>
+                <p style="color:var(--muted); margin-top:6px;">Pomodoro timer with daily stats, generated bell tones,
+                    and minimal mode.</p>
             </div>
             <div class="row">
                 <button id="minimalBtn">Minimal mode</button>
@@ -167,7 +249,8 @@
                         </div>
                     </div>
                     <div class="task-input-wrap row" style="justify-content:center;">
-                        <input id="taskInput" type="text" placeholder="What are you working on?" style="min-width:280px;">
+                        <input id="taskInput" type="text" placeholder="What are you working on?"
+                            style="min-width:280px;">
                     </div>
                     <div class="dots" id="sessionDots"></div>
                     <div class="controls">
@@ -184,9 +267,11 @@
                     <label>Focus minutes<input id="focusMinutes" type="number" min="1" max="180"></label>
                     <label>Short break<input id="shortBreakMinutes" type="number" min="1" max="60"></label>
                     <label>Long break<input id="longBreakMinutes" type="number" min="1" max="120"></label>
-                    <label>Sessions before long break<input id="sessionsBeforeLongBreak" type="number" min="2" max="12"></label>
+                    <label>Sessions before long break<input id="sessionsBeforeLongBreak" type="number" min="2"
+                            max="12"></label>
                 </div>
-                <p style="margin-top:12px; color:var(--muted); font-size:13px;">Changes apply instantly and persist in localStorage.</p>
+                <p style="margin-top:12px; color:var(--muted); font-size:13px;">Changes apply instantly and persist in
+                    localStorage.</p>
             </section>
         </div>
 
@@ -245,7 +330,7 @@
                     }
                     return merged;
                 }
-            } catch {}
+            } catch { }
             return { ...defaults };
         }
 
@@ -408,4 +493,5 @@
         render();
     </script>
 </body>
+
 </html>

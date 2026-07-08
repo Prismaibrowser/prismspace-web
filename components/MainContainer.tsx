@@ -76,14 +76,6 @@ export function MainContainer() {
         {/* Search bar placed directly below the clock */}
         <SearchBar onAgentSubmit={handleAgentSubmit} />
       </div>
-
-      {/* Scroll hint */}
-      <div className="absolute bottom-[40px] left-1/2 -translate-x-1/2 flex flex-col items-center gap-2.5 animate-bounce">
-        <div className="font-sans text-sm font-normal text-white/70 tracking-wider uppercase">
-          Scroll for Dev Space
-        </div>
-        <div className="text-2xl text-white/70">↓</div>
-      </div>
     </div>
   );
 }

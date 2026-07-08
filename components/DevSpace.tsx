@@ -13,19 +13,6 @@ interface Tool {
 
 const tools: Tool[] = [
   { 
-    icon: '📋', 
-    title: 'JSON Toolkit', 
-    desc: 'Format, validate, diff, & transform JSON', 
-    action: 'json-toolkit',
-    uses: [
-      'Format and beautify JSON data',
-      'Validate JSON syntax',
-      'Compare two JSON objects',
-      'Transform JSON structure'
-    ]
-  },
-
-  { 
     icon: '📝', 
     title: 'Markdown Editor', 
     desc: 'Live preview, toolbar, auto-save', 

@@ -6,7 +6,6 @@ import { DevSpace } from '@/components/DevSpace';
 import { TopLogo } from '@/components/TopLogo';
 import { TopQuote } from '@/components/TopQuote';
 import { QuickActions } from '@/components/QuickActions';
-import { SystemInfo } from '@/components/SystemInfo';
 import { SettingsModal } from '@/components/SettingsModal';
 import { PanelManager, usePanelManager } from '@/components/PanelManager';
 import { FloatingMusicPlayer } from '@/components/FloatingMusicPlayer';
@@ -62,7 +61,6 @@ Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}
       <TopQuote />
       <MainContainer />
       <DevSpace onToolAction={handleToolAction} />
-      <SystemInfo />
       <QuickActions
         onSettingsClick={() => setShowSettings(true)}
         onNotepadClick={() => openPanel('notepad')}
