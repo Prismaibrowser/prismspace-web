@@ -17,6 +17,13 @@ export default function Home() {
   const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const { activePanel, openPanel, closePanel } = usePanelManager();
 
+  // Open Agent Swarm panel from SearchBar custom event
+  useEffect(() => {
+    const handler = () => openPanel('agent-swarm');
+    window.addEventListener('prism:open-agent-swarm', handler);
+    return () => window.removeEventListener('prism:open-agent-swarm', handler);
+  }, [openPanel]);
+
   useEffect(() => {
     // Check if matrix display should be shown
     const savedMatrixDisplay = localStorage.getItem('matrixDisplay') !== 'false';

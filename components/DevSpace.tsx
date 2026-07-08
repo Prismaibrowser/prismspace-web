@@ -24,30 +24,7 @@ const tools: Tool[] = [
       'Transform JSON structure'
     ]
   },
-  { 
-    icon: '🔐', 
-    title: 'Crypto Utils', 
-    desc: 'Hash, encode/decode, JWT, UUID, passwords', 
-    action: 'crypto-utils',
-    uses: [
-      'Generate secure hashes (MD5, SHA)',
-      'Encode/decode Base64, URL',
-      'Create and verify JWTs',
-      'Generate UUIDs and passwords'
-    ]
-  },
-  { 
-    icon: '⚙️', 
-    title: 'Regex Workbench', 
-    desc: 'Test patterns, match highlighting, library', 
-    action: 'regex-workbench',
-    uses: [
-      'Test regex patterns live',
-      'Highlight matches visually',
-      'Access common regex library',
-      'Debug complex expressions'
-    ]
-  },
+
   { 
     icon: '📝', 
     title: 'Markdown Editor', 
@@ -72,18 +49,7 @@ const tools: Tool[] = [
       'Master git workflows'
     ]
   },
-  { 
-    icon: '🕐', 
-    title: 'Time & Date', 
-    desc: 'Timestamp converter, world clock, cron', 
-    action: 'time-date',
-    uses: [
-      'Convert Unix timestamps',
-      'View multiple timezones',
-      'Build cron expressions',
-      'Calculate date differences'
-    ]
-  },
+
   { 
     icon: '🎨', 
     title: 'Color Gen', 
@@ -108,18 +74,7 @@ const tools: Tool[] = [
       'Save and reuse templates'
     ]
   },
-  { 
-    icon: '✅', 
-    title: 'Checklist Manager', 
-    desc: 'Named lists, templates, drag-and-drop, print mode', 
-    href: '/dev-space/checklist-manager.html',
-    uses: [
-      'Create multiple checklists',
-      'Use pre-built templates',
-      'Drag to reorder items',
-      'Print for offline use'
-    ]
-  },
+
   { 
     icon: '⏱️', 
     title: 'Focus Timer', 
@@ -156,18 +111,7 @@ const tools: Tool[] = [
       'Build consistent routines'
     ]
   },
-  { 
-    icon: '🎲', 
-    title: 'Random Picker', 
-    desc: 'Names, numbers, dice, coin flips, yes/no, history', 
-    href: '/dev-space/random-picker.html',
-    uses: [
-      'Pick random names',
-      'Generate random numbers',
-      'Roll dice and flip coins',
-      'Make yes/no decisions'
-    ]
-  },
+
   { 
     icon: '⌨️', 
     title: 'Shortcut Reference', 
@@ -180,30 +124,7 @@ const tools: Tool[] = [
       'Boost productivity'
     ]
   },
-  { 
-    icon: '📊', 
-    title: 'System Info', 
-    desc: 'Browser & system information', 
-    action: 'system-stats',
-    uses: [
-      'View browser details',
-      'Check system specs',
-      'Monitor memory usage',
-      'Debug compatibility issues'
-    ]
-  },
-  { 
-    icon: '⟁', 
-    title: 'PrismBrowser Web', 
-    desc: 'Quick access to Prism website', 
-    href: 'https://github.com/Prismaibrowser/prism/blob/main/README.md',
-    uses: [
-      'Access Prism documentation',
-      'View project on GitHub',
-      'Learn about features',
-      'Contribute to the project'
-    ]
-  },
+
   { 
     icon: '✍️', 
     title: 'Writing Assistant', 
@@ -216,18 +137,7 @@ const tools: Tool[] = [
       'Fix grammar and style'
     ]
   },
-  { 
-    icon: '🌍', 
-    title: 'Language Learning', 
-    desc: 'AI tutor for 8+ languages with progress tracker', 
-    action: 'language-learning',
-    uses: [
-      'Practice conversations',
-      'Get grammar corrections',
-      'Build vocabulary',
-      'Track your progress'
-    ]
-  },
+
   { 
     icon: '🔍', 
     title: 'Code Explainer', 

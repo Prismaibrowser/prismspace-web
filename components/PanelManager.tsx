@@ -6,9 +6,9 @@ import { JsonToolkit } from './tools/JsonToolkit';
 import { ColorGenerator } from './tools/ColorGenerator';
 import { AgentSwarm } from './AgentSwarm';
 
-type PanelType = 'notepad' | 'json-toolkit' | 'crypto-utils' | 'regex-workbench' | 
-  'markdown-editor' | 'git-reference' | 'time-date' | 'color-gen' | 'prompt-synthesizer' |
-  'writing-assistant' | 'language-learning' | 'code-explainer' | 'code-translator' | 'decision-analyzer' |
+type PanelType = 'notepad' | 'json-toolkit' | 
+  'markdown-editor' | 'git-reference' | 'color-gen' | 'prompt-synthesizer' |
+  'writing-assistant' | 'code-explainer' | 'code-translator' | 'decision-analyzer' |
   'agent-swarm';
 
 interface PanelConfig {
@@ -35,20 +35,7 @@ const panelConfigs: Record<PanelType, PanelConfig> = {
     width: '550px',
     component: JsonToolkit,
   },
-  'crypto-utils': {
-    type: 'crypto-utils',
-    title: 'Crypto Utils',
-    position: 'left',
-    width: '550px',
-    iframeSrc: '/dev-space/crypto-utils.html',
-  },
-  'regex-workbench': {
-    type: 'regex-workbench',
-    title: 'Regex Workbench',
-    position: 'right',
-    width: '600px',
-    iframeSrc: '/dev-space/regex-workbench.html',
-  },
+
   'markdown-editor': {
     type: 'markdown-editor',
     title: 'Markdown Editor',
@@ -63,13 +50,7 @@ const panelConfigs: Record<PanelType, PanelConfig> = {
     width: '650px',
     iframeSrc: '/dev-space/git-reference.html',
   },
-  'time-date': {
-    type: 'time-date',
-    title: 'Time & Date',
-    position: 'right',
-    width: '550px',
-    iframeSrc: '/dev-space/time-date.html',
-  },
+
   'color-gen': {
     type: 'color-gen',
     title: 'Color Generator',
@@ -91,13 +72,7 @@ const panelConfigs: Record<PanelType, PanelConfig> = {
     width: '90%',
     iframeSrc: '/dev-space/writing-assistant.html',
   },
-  'language-learning': {
-    type: 'language-learning',
-    title: 'Language Learning',
-    position: 'right',
-    width: '90%',
-    iframeSrc: '/dev-space/language-learning.html',
-  },
+
   'code-explainer': {
     type: 'code-explainer',
     title: 'Code Explainer',
