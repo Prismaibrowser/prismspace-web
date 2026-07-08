@@ -266,9 +266,9 @@ const tools: Tool[] = [
   },
   { 
     icon: '🐝', 
-    title: 'Hive Orchestrator', 
+    title: 'Agent Swarm', 
     desc: 'Multi-agent swarm orchestration powered by aden-hive/hive', 
-    action: 'hive-orchestrator',
+    action: 'agent-swarm',
     uses: [
       'Launch multi-agent swarms',
       'Monitor live execution DAGs',

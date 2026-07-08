@@ -1,7 +1,7 @@
 /**
- * lib/hive-client.ts
- * ──────────────────
- * Typed TypeScript client for the Hive Bridge API.
+ * lib/agent-swarm-client.ts
+ * ─────────────────────────
+ * Typed TypeScript client for the Agent Swarm API.
  * Communicates with Next.js API routes which proxy to the Python backend.
  */
 
@@ -16,7 +16,7 @@ export type AgentStatus =
 
 export type ModelProvider = 'openai' | 'anthropic' | 'google';
 
-export interface HiveAgent {
+export interface SwarmAgent {
   id: string;
   objective: string;
   model: string;
@@ -38,18 +38,18 @@ export interface CreateAgentPayload {
   human_in_loop?: boolean;
 }
 
-const BASE = '/api/hive';
+const BASE = '/api/agent-swarm';
 
 // ── CRUD ─────────────────────────────────────────────────────────────────────
 
-export async function listAgents(): Promise<HiveAgent[]> {
+export async function listAgents(): Promise<SwarmAgent[]> {
   const res = await fetch(`${BASE}/agents`);
   if (!res.ok) throw new Error(`Failed to list agents: ${res.status}`);
   const data = await res.json();
-  return data.agents as HiveAgent[];
+  return data.agents as SwarmAgent[];
 }
 
-export async function createAgent(payload: CreateAgentPayload): Promise<HiveAgent> {
+export async function createAgent(payload: CreateAgentPayload): Promise<SwarmAgent> {
   const res = await fetch(`${BASE}/agents`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -65,7 +65,7 @@ export async function createAgent(payload: CreateAgentPayload): Promise<HiveAgen
   return res.json();
 }
 
-export async function getAgent(id: string): Promise<HiveAgent> {
+export async function getAgent(id: string): Promise<SwarmAgent> {
   const res = await fetch(`${BASE}/agents/${id}`);
   if (!res.ok) throw new Error(`Agent not found: ${id}`);
   return res.json();
@@ -91,7 +91,7 @@ export async function deleteAgent(id: string): Promise<void> {
 
 // ── Health ────────────────────────────────────────────────────────────────────
 
-export async function checkHiveHealth(): Promise<boolean> {
+export async function checkSwarmHealth(): Promise<boolean> {
   try {
     const res = await fetch(`${BASE}/health`, { cache: 'no-store' });
     return res.ok;

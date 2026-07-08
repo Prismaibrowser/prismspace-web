@@ -1,12 +1,11 @@
 /**
- * app/api/hive/agents/[id]/route.ts
- * GET    /api/hive/agents/:id           — get one agent
- * POST   /api/hive/agents/:id/approve   — approve/reject (via sub-path, see approve/route.ts)
- * DELETE /api/hive/agents/:id           — remove agent
+ * app/api/agent-swarm/agents/[id]/route.ts
+ * GET    /api/agent-swarm/agents/:id  — get one agent
+ * DELETE /api/agent-swarm/agents/:id  — remove agent
  */
 import { NextRequest, NextResponse } from 'next/server';
 
-const HIVE_URL = process.env.HIVE_API_URL ?? 'http://localhost:7433';
+const SWARM_URL = process.env.HIVE_API_URL ?? 'http://localhost:7433';
 
 export async function GET(
   _req: NextRequest,
@@ -14,7 +13,7 @@ export async function GET(
 ) {
   const { id } = await params;
   try {
-    const res = await fetch(`${HIVE_URL}/api/agents/${id}`, { cache: 'no-store' });
+    const res = await fetch(`${SWARM_URL}/api/agents/${id}`, { cache: 'no-store' });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch (err) {
@@ -28,7 +27,7 @@ export async function DELETE(
 ) {
   const { id } = await params;
   try {
-    const res = await fetch(`${HIVE_URL}/api/agents/${id}`, { method: 'DELETE' });
+    const res = await fetch(`${SWARM_URL}/api/agents/${id}`, { method: 'DELETE' });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch (err) {

@@ -8,17 +8,17 @@
 
 import { useState } from 'react';
 import {
-  HiveAgent,
+  SwarmAgent,
   AgentStatus,
   STATUS_LABELS,
   STATUS_COLORS,
   isTerminal,
   approveAgent,
   deleteAgent,
-} from '@/lib/hive-client';
+} from '@/lib/agent-swarm-client';
 
 interface AgentCardProps {
-  agent: HiveAgent;
+  agent: SwarmAgent;
   isSelected: boolean;
   onSelect: () => void;
   onRefresh: () => void;

@@ -4,12 +4,12 @@ import { useState, useEffect } from 'react';
 import { NotepadPanel } from './tools/NotepadPanel';
 import { JsonToolkit } from './tools/JsonToolkit';
 import { ColorGenerator } from './tools/ColorGenerator';
-import { HiveOrchestrator } from './HiveOrchestrator';
+import { AgentSwarm } from './AgentSwarm';
 
 type PanelType = 'notepad' | 'json-toolkit' | 'crypto-utils' | 'regex-workbench' | 
   'markdown-editor' | 'git-reference' | 'time-date' | 'color-gen' | 'prompt-synthesizer' |
   'writing-assistant' | 'language-learning' | 'code-explainer' | 'code-translator' | 'decision-analyzer' |
-  'hive-orchestrator';
+  'agent-swarm';
 
 interface PanelConfig {
   type: PanelType;
@@ -119,12 +119,12 @@ const panelConfigs: Record<PanelType, PanelConfig> = {
     width: '90%',
     iframeSrc: '/dev-space/decision-analyzer.html',
   },
-  'hive-orchestrator': {
-    type: 'hive-orchestrator',
-    title: 'Hive Orchestrator',
+  'agent-swarm': {
+    type: 'agent-swarm',
+    title: 'Agent Swarm',
     position: 'full',
     width: '92%',
-    component: HiveOrchestrator,
+    component: AgentSwarm,
   },
 };
 

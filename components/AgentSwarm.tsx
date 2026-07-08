@@ -1,29 +1,29 @@
 'use client';
 
 /**
- * components/HiveOrchestrator.tsx
- * ────────────────────────────────
- * Full-panel Hive multi-agent orchestration dashboard.
+ * components/AgentSwarm.tsx
+ * ──────────────────────────
+ * Full-panel Agent Swarm orchestration dashboard.
  * Shows live agent status, log streaming, HITL controls, and a task launcher.
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  HiveAgent,
+  SwarmAgent,
   CreateAgentPayload,
   ModelProvider,
   createAgent,
   listAgents,
   approveAgent,
   streamAgentLogs,
-  checkHiveHealth,
+  checkSwarmHealth,
   STATUS_COLORS,
   STATUS_LABELS,
   isTerminal,
-} from '@/lib/hive-client';
+} from '@/lib/agent-swarm-client';
 import { AgentCard } from './AgentCard';
 
-interface HiveOrchestratorProps {
+interface AgentSwarmProps {
   onClose: () => void;
 }
 
@@ -33,13 +33,12 @@ const MODELS: Record<ModelProvider, string[]> = {
   google: ['gemini-2.5-pro', 'gemini-2.5-flash'],
 };
 
-export function HiveOrchestrator({ onClose }: HiveOrchestratorProps) {
+export function AgentSwarm({ onClose }: AgentSwarmProps) {
   // ── State ─────────────────────────────────────────────────────────────────
   const [backendOnline, setBackendOnline] = useState<boolean | null>(null);
-  const [agents, setAgents] = useState<HiveAgent[]>([]);
+  const [agents, setAgents] = useState<SwarmAgent[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [logLines, setLogLines] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
 
   // New agent form
   const [objective, setObjective] = useState('');
@@ -54,8 +53,8 @@ export function HiveOrchestrator({ onClose }: HiveOrchestratorProps) {
 
   // ── Health check ──────────────────────────────────────────────────────────
   useEffect(() => {
-    checkHiveHealth().then(setBackendOnline);
-    const interval = setInterval(() => checkHiveHealth().then(setBackendOnline), 8000);
+    checkSwarmHealth().then(setBackendOnline);
+    const interval = setInterval(() => checkSwarmHealth().then(setBackendOnline), 8000);
     return () => clearInterval(interval);
   }, []);
 
@@ -77,7 +76,6 @@ export function HiveOrchestrator({ onClose }: HiveOrchestratorProps) {
 
   // ── Log streaming ─────────────────────────────────────────────────────────
   useEffect(() => {
-    // Cleanup previous stream
     cleanupLogStream.current?.();
     cleanupLogStream.current = null;
 
@@ -95,9 +93,7 @@ export function HiveOrchestrator({ onClose }: HiveOrchestratorProps) {
       (line) => {
         setLogLines((prev) => [...prev, line]);
       },
-      () => {
-        // done
-      },
+      () => {},
     );
     cleanupLogStream.current = stop;
 
@@ -136,7 +132,6 @@ export function HiveOrchestrator({ onClose }: HiveOrchestratorProps) {
     }
   };
 
-  // When provider changes, reset model
   const handleProviderChange = (p: ModelProvider) => {
     setProvider(p);
     setModel(MODELS[p][0]);
@@ -163,9 +158,9 @@ export function HiveOrchestrator({ onClose }: HiveOrchestratorProps) {
           <span className="text-2xl">🐝</span>
           <div>
             <h2 className="text-lg font-bold text-white leading-tight">
-              Hive Orchestrator
+              Agent Swarm
             </h2>
-            <p className="text-white/40 text-xs">Multi-Agent Harness · aden-hive/hive</p>
+            <p className="text-white/40 text-xs">Multi-Agent Orchestration · aden-hive/hive</p>
           </div>
         </div>
 
@@ -215,7 +210,7 @@ export function HiveOrchestrator({ onClose }: HiveOrchestratorProps) {
         >
           <span className="text-lg flex-shrink-0">⚠️</span>
           <div>
-            <p className="font-semibold text-red-300">Hive backend is not running</p>
+            <p className="font-semibold text-red-300">Agent Swarm backend is not running</p>
             <p className="text-red-300/70 text-xs mt-0.5">
               Start it with{' '}
               <code className="bg-black/30 px-1 rounded font-mono">
@@ -227,7 +222,7 @@ export function HiveOrchestrator({ onClose }: HiveOrchestratorProps) {
         </div>
       )}
 
-      {/* ── Body (3 columns on wide screens) ──────────────────────────────── */}
+      {/* ── Body ───────────────────────────────────────────────────────────── */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
         {/* ── LEFT: Agent list + Launch form ──────────────────────────────── */}
@@ -242,7 +237,7 @@ export function HiveOrchestrator({ onClose }: HiveOrchestratorProps) {
             style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
           >
             <p className="text-xs text-white/50 font-semibold uppercase tracking-widest">
-              Launch Agent
+              Launch Swarm
             </p>
 
             <textarea
@@ -351,15 +346,12 @@ export function HiveOrchestrator({ onClose }: HiveOrchestratorProps) {
 
           {/* Agent list */}
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
-            {isLoading && (
-              <p className="text-white/30 text-xs text-center py-4">Loading…</p>
-            )}
-            {!isLoading && agents.length === 0 && (
+            {agents.length === 0 && (
               <div className="text-center py-8">
                 <p className="text-3xl mb-2">🐝</p>
                 <p className="text-white/30 text-xs">No agents yet.</p>
                 <p className="text-white/20 text-xs mt-1">
-                  Launch one above to get started.
+                  Launch a swarm above to get started.
                 </p>
               </div>
             )}
@@ -523,7 +515,6 @@ export function HiveOrchestrator({ onClose }: HiveOrchestratorProps) {
         </div>
       </div>
 
-      {/* Keyframe styles injected inline */}
       <style jsx global>{`
         @keyframes blink {
           0%, 100% { opacity: 1; }
