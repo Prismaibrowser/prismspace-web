@@ -7,8 +7,8 @@ type ClockStyle = 'default' | 'minimal' | 'serif' | 'handwritten' | 'minimal-lig
   'serif-condensed' | 'bitcount' | 'corpta' | 'fenotype' | 'nclkemgor' | 
   'westiva' | 'ammonite' | 'crude' | 'ghetto' | 'zombiess';
 
-type SettingsSection = 'clock' | 'themes' | 'focus' | 'stats' | 'music' | 
-  'notepad' | 'sounds' | 'quotes' | 'extras' | 'profile' | 'support';
+type SettingsSection = 'clock' | 'themes' | 'stats' | 'music' | 
+  'notepad' | 'sounds' | 'quotes' | 'extras' | 'profile';
 
 const clockStyles: { name: string; value: ClockStyle; preview: string }[] = [
   { name: 'Default', value: 'default', preview: '/clock-previews/default.html' },
@@ -121,7 +121,6 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const navItems: { id: SettingsSection; icon: string; label: string }[] = [
     { id: 'clock', icon: '🕐', label: 'Clock' },
     { id: 'themes', icon: '🎨', label: 'Themes' },
-    { id: 'focus', icon: '⏱️', label: 'Focus Timer' },
     { id: 'stats', icon: '📊', label: 'Stats' },
     { id: 'music', icon: '🎵', label: 'Music' },
     { id: 'notepad', icon: '📝', label: 'Notepad' },
@@ -129,7 +128,6 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
     { id: 'quotes', icon: '💬', label: 'Quotes' },
     { id: 'extras', icon: '⚡', label: 'Extras' },
     { id: 'profile', icon: '👤', label: 'Profile' },
-    { id: 'support', icon: '❓', label: 'Support & Feedback' },
   ];
 
   return (
@@ -157,14 +155,6 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
           </nav>
 
           <div className="mt-6 space-y-2">
-            <button className="w-full flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/5 transition-all text-sm">
-              <span>⚡</span>
-              <span>Explore Prism Plus</span>
-            </button>
-            <button className="w-full flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/5 transition-all text-sm">
-              <span>🎁</span>
-              <span>Share with friends</span>
-            </button>
           </div>
         </div>
 
@@ -346,17 +336,6 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
-          {/* Focus Timer Section */}
-          {activeSection === 'focus' && (
-            <div>
-              <h2 className="text-2xl font-semibold mb-6">Focus Timer</h2>
-              <iframe
-                src="/dev-space/focus-settings.html"
-                className="w-full h-[600px] rounded-xl border border-white/20"
-              />
-            </div>
-          )}
-
           {/* Quotes Section */}
           {activeSection === 'quotes' && (
             <div className="space-y-6">
@@ -442,7 +421,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
           )}
 
           {/* Placeholder Sections */}
-          {['stats', 'music', 'notepad', 'sounds', 'profile', 'support'].includes(activeSection) && (
+          {['stats', 'music', 'notepad', 'sounds', 'profile'].includes(activeSection) && (
             <div>
               <h2 className="text-2xl font-semibold mb-6">
                 {navItems.find(i => i.id === activeSection)?.label}

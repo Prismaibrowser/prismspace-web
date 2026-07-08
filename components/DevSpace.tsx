@@ -12,10 +12,10 @@ interface Tool {
 }
 
 const tools: Tool[] = [
-  { 
-    icon: '📝', 
-    title: 'Markdown Editor', 
-    desc: 'Live preview, toolbar, auto-save', 
+  {
+    icon: '📝',
+    title: 'Markdown Editor',
+    desc: 'Live preview, toolbar, auto-save',
     action: 'markdown-editor',
     uses: [
       'Write with live preview',
@@ -24,10 +24,10 @@ const tools: Tool[] = [
       'Export to HTML or PDF'
     ]
   },
-  { 
-    icon: '🐙', 
-    title: 'Git Reference', 
-    desc: 'Cheat sheet, builder, scenarios', 
+  {
+    icon: '🐙',
+    title: 'Git Reference',
+    desc: 'Cheat sheet, builder, scenarios',
     action: 'git-reference',
     uses: [
       'Quick command reference',
@@ -37,10 +37,10 @@ const tools: Tool[] = [
     ]
   },
 
-  { 
-    icon: '🎨', 
-    title: 'Color Gen', 
-    desc: 'Interactive color palette generator', 
+  {
+    icon: '🎨',
+    title: 'Color Gen',
+    desc: 'Interactive color palette generator',
     action: 'color-gen',
     uses: [
       'Generate color palettes',
@@ -49,10 +49,10 @@ const tools: Tool[] = [
       'Create harmonious schemes'
     ]
   },
-  { 
-    icon: '🤖', 
-    title: 'Prompt Synthesizer', 
-    desc: 'AI-powered prompt enhancement tool', 
+  {
+    icon: '🤖',
+    title: 'Prompt Synthesizer',
+    desc: 'AI-powered prompt enhancement tool',
     action: 'prompt-synthesizer',
     uses: [
       'Enhance AI prompts',
@@ -62,10 +62,10 @@ const tools: Tool[] = [
     ]
   },
 
-  { 
-    icon: '⏱️', 
-    title: 'Focus Timer', 
-    desc: 'Pomodoro timer, stats, task label, minimal mode', 
+  {
+    icon: '⏱️',
+    title: 'Focus Timer',
+    desc: 'Pomodoro timer, stats, task label, minimal mode',
     href: '/dev-space/focus-settings.html',
     uses: [
       'Track focus sessions',
@@ -74,10 +74,10 @@ const tools: Tool[] = [
       'Use minimal fullscreen mode'
     ]
   },
-  { 
-    icon: '🔖', 
-    title: 'Bookmark Manager', 
-    desc: 'Save, tag, search, import, export, and track visits', 
+  {
+    icon: '🔖',
+    title: 'Bookmark Manager',
+    desc: 'Save, tag, search, import, export, and track visits',
     href: '/dev-space/bookmark-manager.html',
     uses: [
       'Organize with tags',
@@ -86,10 +86,10 @@ const tools: Tool[] = [
       'Import/export bookmarks'
     ]
   },
-  { 
-    icon: '📈', 
-    title: 'Habit Tracker', 
-    desc: 'Streaks, heatmaps, weekly charts, and habit history', 
+  {
+    icon: '📈',
+    title: 'Habit Tracker',
+    desc: 'Streaks, heatmaps, weekly charts, and habit history',
     href: '/dev-space/habit-tracker.html',
     uses: [
       'Track daily habits',
@@ -99,10 +99,10 @@ const tools: Tool[] = [
     ]
   },
 
-  { 
-    icon: '⌨️', 
-    title: 'Shortcut Reference', 
-    desc: 'Searchable cheat sheets with pinned shortcuts', 
+  {
+    icon: '⌨️',
+    title: 'Shortcut Reference',
+    desc: 'Searchable cheat sheets with pinned shortcuts',
     href: '/dev-space/shortcut-reference.html',
     uses: [
       'Search keyboard shortcuts',
@@ -112,10 +112,10 @@ const tools: Tool[] = [
     ]
   },
 
-  { 
-    icon: '✍️', 
-    title: 'Writing Assistant', 
-    desc: 'AI writing improvement, translate, summarize & more', 
+  {
+    icon: '✍️',
+    title: 'Writing Assistant',
+    desc: 'AI writing improvement, translate, summarize & more',
     action: 'writing-assistant',
     uses: [
       'Improve your writing',
@@ -125,10 +125,10 @@ const tools: Tool[] = [
     ]
   },
 
-  { 
-    icon: '🔍', 
-    title: 'Code Explainer', 
-    desc: 'Explain code for learners & junior devs', 
+  {
+    icon: '🔍',
+    title: 'Code Explainer',
+    desc: 'Explain code for learners & junior devs',
     action: 'code-explainer',
     uses: [
       'Understand code snippets',
@@ -137,10 +137,10 @@ const tools: Tool[] = [
       'Quiz yourself on code'
     ]
   },
-  { 
-    icon: '⇄', 
-    title: 'Code Translator', 
-    desc: 'Convert code between 12+ programming languages', 
+  {
+    icon: '⇄',
+    title: 'Code Translator',
+    desc: 'Convert code between 12+ programming languages',
     action: 'code-translator',
     uses: [
       'Convert between languages',
@@ -149,10 +149,10 @@ const tools: Tool[] = [
       'Understand idioms'
     ]
   },
-  { 
-    icon: '🧠', 
-    title: 'Decision Analyzer', 
-    desc: 'AI deep analysis with thinking mode for decisions', 
+  {
+    icon: '🧠',
+    title: 'Decision Analyzer',
+    desc: 'AI deep analysis with thinking mode for decisions',
     action: 'decision-analyzer',
     uses: [
       'Analyze tough decisions',
@@ -161,10 +161,10 @@ const tools: Tool[] = [
       'Export analysis reports'
     ]
   },
-  { 
-    icon: '🐝', 
-    title: 'Agent Swarm', 
-    desc: 'Multi-agent swarm orchestration powered by aden-hive/hive', 
+  {
+    icon: '🐝',
+    title: 'Agent Swarm',
+    desc: 'Multi-agent swarm orchestration',
     action: 'agent-swarm',
     uses: [
       'Launch multi-agent swarms',
@@ -190,11 +190,11 @@ export function DevSpace({ onToolAction }: DevSpaceProps) {
 
   return (
     <div className="min-h-screen py-[60px] px-[40px] flex flex-col items-center justify-start relative z-[2]"
-         style={{
-           background: 'linear-gradient(180deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.6) 50%, rgba(0, 0, 0, 0.4) 100%)',
-           marginTop: '-100vh',
-           transform: 'translateY(100vh)'
-         }}>
+      style={{
+        background: 'linear-gradient(180deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.6) 50%, rgba(0, 0, 0, 0.4) 100%)',
+        marginTop: '-100vh',
+        transform: 'translateY(100vh)'
+      }}>
       <div className="mb-[30px] text-center animate-fadeInUp flex-shrink-0">
         <h2 className="font-sans text-[2.5rem] font-semibold text-white m-0 tracking-tight text-shadow-sm">
           Dev Space
@@ -204,9 +204,9 @@ export function DevSpace({ onToolAction }: DevSpaceProps) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-[1400px] w-full mx-auto 
                       animate-fadeInUp flex-1 content-start">
         {tools.map((tool, index) => (
-          <div 
-            key={index} 
-            onClick={() => handleCardClick(tool)} 
+          <div
+            key={index}
+            onClick={() => handleCardClick(tool)}
             className="cursor-pointer w-full flex justify-center"
           >
             <CardFlip

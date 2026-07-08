@@ -3,6 +3,7 @@
 // Specific react-use hooks used (tree-shakeable named imports from package root)
 import { useWindowSize, useNetworkState } from 'react-use';
 import { useEffect, useState } from 'react';
+import { db } from '../lib/db';
 
 // ---------------------------------------------------------------------------
 // Lightweight UA parser — no external dependency required.
@@ -45,9 +46,17 @@ export function SystemInfo() {
   // empty string, avoiding a hydration mismatch. The real value is set inside
   // useEffect, which only runs on the client after hydration.
   const [browser, setBrowser] = useState('');
+  const [dbStatus, setDbStatus] = useState('Checking...');
+  
   useEffect(() => {
     const engine = detectBrowserEngine();
     setBrowser(`PRISM (${engine})`);
+
+    // Test Dexie connection
+    db.open()
+      .then(() => db.bookmarks.count())
+      .then(count => setDbStatus(`OK (${count} bookmarks)`))
+      .catch(err => setDbStatus(`Error: ${err.name}`));
   }, []);
 
   // ── Mount guard ──────────────────────────────────────────────────────────
@@ -109,6 +118,12 @@ export function SystemInfo() {
       <div className="flex justify-between mb-2 text-sm font-mono">
         <span>Connection:</span>
         <span>{connectionDisplay}</span>
+      </div>
+
+      {/* Database — fed by Dexie connection test */}
+      <div className="flex justify-between mb-2 text-sm font-mono">
+        <span>Database:</span>
+        <span title={dbStatus} className="truncate ml-2 text-right">{dbStatus}</span>
       </div>
     </div>
   );
