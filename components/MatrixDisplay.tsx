@@ -43,9 +43,8 @@ export function MatrixDisplay() {
             {row.map((cell, j) => (
               <div
                 key={j}
-                className={`w-1 h-1 rounded-sm transition-opacity duration-200 ${
-                  cell ? 'opacity-100 shadow-[0_0_3px_currentColor]' : 'opacity-20'
-                }`}
+                className={`w-1 h-1 rounded-sm transition-opacity duration-200 ${cell ? 'opacity-100 shadow-[0_0_3px_currentColor]' : 'opacity-20'
+                  }`}
                 style={{ backgroundColor: '#00ff88' }}
               />
             ))}
