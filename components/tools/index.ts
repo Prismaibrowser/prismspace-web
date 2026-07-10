@@ -3,10 +3,10 @@ export { BookmarkManager } from './BookmarkManager';
 export { ChecklistManager } from './ChecklistManager';
 export { ColorGenerator } from './ColorGenerator';
 export { GitReference } from './GitReference';
-export { HabitTracker } from './HabitTracker';
 export { MatrixDisplay } from './MatrixDisplay';
 export { NotepadPanel } from './NotepadPanel';
-export { ShortcutReference } from './ShortcutReference';
+export { PomodoroTimer } from './PomodoroTimer';
+export { QRCodeGenerator } from './QRCodeGenerator';
 export { WebScraperTool } from './WebScraperTool';
 
 // To be implemented:

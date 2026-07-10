@@ -4,12 +4,13 @@ import { useState, useEffect } from 'react';
 import { NotepadPanel } from './tools/NotepadPanel';
 import { ColorGenerator } from './tools/ColorGenerator';
 import { WebScraperTool } from './tools/WebScraperTool';
+import { PomodoroTimer } from './tools/PomodoroTimer';
 import { AgentSwarm } from './AgentSwarm';
 
 type PanelType = 'notepad' | 
-  'markdown-editor' | 'git-reference' | 'color-gen' | 'prompt-synthesizer' |
+  'git-reference' | 'color-gen' | 'qr-generator' | 'prompt-synthesizer' |
   'writing-assistant' | 'code-explainer' | 'code-translator' | 'decision-analyzer' |
-  'web-scraper' | 'agent-swarm';
+  'web-scraper' | 'pomodoro-timer' | 'agent-swarm';
 
 interface PanelConfig {
   type: PanelType;
@@ -29,19 +30,12 @@ const panelConfigs: Record<PanelType, PanelConfig> = {
     component: NotepadPanel,
   },
 
-  'markdown-editor': {
-    type: 'markdown-editor',
-    title: 'Markdown Editor',
-    position: 'right',
-    width: '700px',
-    iframeSrc: '/dev-space/markdown-editor.html',
-  },
   'git-reference': {
     type: 'git-reference',
     title: 'Git Reference',
     position: 'right',
     width: '650px',
-    iframeSrc: '/dev-space/git-reference.html',
+    iframeSrc: '/dev-space/git-reference',
   },
 
   'color-gen': {
@@ -51,12 +45,26 @@ const panelConfigs: Record<PanelType, PanelConfig> = {
     width: '600px',
     component: ColorGenerator,
   },
+  'qr-generator': {
+    type: 'qr-generator',
+    title: 'QR Code Generator',
+    position: 'right',
+    width: '85%',
+    iframeSrc: '/dev-space/qr-generator',
+  },
   'web-scraper': {
     type: 'web-scraper',
     title: 'Web Scraper',
     position: 'right',
     width: '82%',
     component: WebScraperTool,
+  },
+  'pomodoro-timer': {
+    type: 'pomodoro-timer',
+    title: 'Pomodoro Timer',
+    position: 'right',
+    width: '82%',
+    component: PomodoroTimer,
   },
   'prompt-synthesizer': {
     type: 'prompt-synthesizer',

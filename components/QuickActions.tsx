@@ -1,6 +1,8 @@
 'use client';
 
 import { MatrixDisplay } from '@/components/MatrixDisplay';
+import ProfileDropdown from '@/components/kokonutui/profile-dropdown';
+import { useUserProfile } from '@/lib/hooks/useUserProfile';
 
 interface QuickActionsProps {
   onSettingsClick?: () => void;
@@ -13,6 +15,8 @@ export function QuickActions({
   onNotepadClick,
   showMatrix = true,
 }: QuickActionsProps) {
+  const { profile } = useUserProfile();
+
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen();
@@ -38,11 +42,15 @@ export function QuickActions({
         {showMatrix && <MatrixDisplay />}
       </div>
 
-      {/* ── Bottom-right: Settings | Fullscreen ── */}
+      {/* ── Bottom-right: Profile | Fullscreen ── */}
       <div className="fixed bottom-[30px] right-[30px] flex gap-3 items-center z-[100]">
-        <button onClick={onSettingsClick} className={btnClass} title="Settings">
-          ⚙️
-        </button>
+        <ProfileDropdown
+          data={{
+            name: profile?.username || 'User',
+            avatar: profile?.avatar || '👤',
+          }}
+          onSettingsClick={onSettingsClick}
+        />
 
         <button onClick={toggleFullscreen} className={btnClass} title="Toggle Fullscreen">
           ⛶

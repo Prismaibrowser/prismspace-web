@@ -13,18 +13,6 @@ interface Tool {
 
 const tools: Tool[] = [
   {
-    icon: '📝',
-    title: 'Markdown Editor',
-    desc: 'Live preview, toolbar, auto-save',
-    action: 'markdown-editor',
-    uses: [
-      'Write with live preview',
-      'Use formatting toolbar',
-      'Auto-save your work',
-      'Export to HTML or PDF'
-    ]
-  },
-  {
     icon: '🐙',
     title: 'Git Reference',
     desc: 'Cheat sheet, builder, scenarios',
@@ -50,6 +38,18 @@ const tools: Tool[] = [
     ]
   },
   {
+    icon: '📱',
+    title: 'QR Code Generator',
+    desc: 'Create custom QR codes for URLs, WiFi, vCards, and more',
+    action: 'qr-generator',
+    uses: [
+      'Generate QR codes',
+      'WiFi network sharing',
+      'Contact cards (vCard)',
+      'Customize colors & size'
+    ]
+  },
+  {
     icon: '🧾',
     title: 'Web Scraper',
     desc: 'Paste a link and export clean JSON or CSV',
@@ -64,21 +64,21 @@ const tools: Tool[] = [
 
   {
     icon: '⏱️',
-    title: 'Focus Timer',
-    desc: 'Pomodoro timer, stats, task label, minimal mode',
-    href: '/dev-space/focus-settings.html',
+    title: 'Pomodoro Timer',
+    desc: 'Animated focus countdown with Number Flow',
+    action: 'pomodoro-timer',
     uses: [
-      'Track focus sessions',
-      'View daily statistics',
-      'Label your tasks',
-      'Use minimal fullscreen mode'
+      'Run a 25-minute focus session',
+      'Pause or resume the countdown',
+      'Reset the timer instantly',
+      'Use animated Number Flow digits'
     ]
   },
   {
     icon: '🔖',
     title: 'Bookmark Manager',
     desc: 'Save, tag, search, import, export, and track visits',
-    href: '/dev-space/bookmark-manager.html',
+    href: '/dev-space/bookmark-canvas',
     uses: [
       'Organize with tags',
       'Search across all fields',
@@ -86,32 +86,6 @@ const tools: Tool[] = [
       'Import/export bookmarks'
     ]
   },
-  {
-    icon: '📈',
-    title: 'Habit Tracker',
-    desc: 'Streaks, heatmaps, weekly charts, and habit history',
-    href: '/dev-space/habit-tracker.html',
-    uses: [
-      'Track daily habits',
-      'View streak heatmaps',
-      'Analyze weekly progress',
-      'Build consistent routines'
-    ]
-  },
-
-  {
-    icon: '⌨️',
-    title: 'Shortcut Reference',
-    desc: 'Searchable cheat sheets with pinned shortcuts',
-    href: '/dev-space/shortcut-reference.html',
-    uses: [
-      'Search keyboard shortcuts',
-      'Pin frequently used ones',
-      'Learn shortcuts by app',
-      'Boost productivity'
-    ]
-  },
-
 
 ];
 

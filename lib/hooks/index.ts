@@ -7,6 +7,7 @@ export { useBookmarks } from './useBookmarks';
 export { useHabits } from './useHabits';
 export { useRandomPickerHistory } from './useRandomPickerHistory';
 export { useShortcuts } from './useShortcuts';
+export { useUserProfile } from './useUserProfile';
 
 export {
   useAiToolHistory,
@@ -31,7 +32,8 @@ export type {
   Shortcut,
   AiToolHistory,
   LanguageLearningStats,
-  AppSettings
+  AppSettings,
+  UserProfile
 } from '../db';
 
 export type {

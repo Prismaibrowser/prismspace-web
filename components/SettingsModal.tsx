@@ -4,7 +4,9 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { ClockStyle } from './Clock';
 import { ClockPreview } from './ClockPreview';
-import { db } from '@/lib/db';
+import { AvatarPicker } from './AvatarPicker';
+import { AppleSwitch } from '@/components/unlumen-ui/apple-switch';
+import { db, UserProfile } from '@/lib/db';
 
 type SettingsSection = 'clock' | 'themes' | 'stats' | 'quotes' | 'extras' | 'profile';
 type BackgroundMediaType = 'image' | 'video';
@@ -98,6 +100,12 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const [dynamicGreetings, setDynamicGreetings] = useState(true);
   const [showGreetings, setShowGreetings] = useState(true);
   const [matrixDisplay, setMatrixDisplay] = useState(true);
+  
+  // Profile states
+  const [username, setUsername] = useState('User');
+  const [avatar, setAvatar] = useState('👤');
+  const [isEditingUsername, setIsEditingUsername] = useState(false);
+  const [tempUsername, setTempUsername] = useState('');
 
   useEffect(() => {
     return () => {
@@ -122,6 +130,31 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
     setDynamicGreetings(savedDynamicGreetings);
     setShowGreetings(savedShowGreetings);
     setMatrixDisplay(savedMatrixDisplay);
+
+    // Load user profile
+    const loadProfile = async () => {
+      try {
+        const profile = await db.user_profile.get('current');
+        if (profile) {
+          setUsername(profile.username);
+          setAvatar(profile.avatar);
+        } else {
+          // Create default profile
+          const now = new Date();
+          await db.user_profile.put({
+            key: 'current',
+            username: 'User',
+            avatar: '👤',
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load profile:', err);
+      }
+    };
+
+    loadProfile();
 
     let isMounted = true;
     let previewUrl: string | null = null;
@@ -595,21 +628,15 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                     <div className="font-medium mb-1">Show dynamic greetings</div>
                     <div className="text-sm text-white/60">Turn off for generic greetings.</div>
                   </div>
-                  <label className="relative inline-block w-12 h-6">
-                    <input
-                      type="checkbox"
-                      checked={dynamicGreetings}
-                      onChange={(e) => {
-                        setDynamicGreetings(e.target.checked);
-                        localStorage.setItem('dynamicGreetings', e.target.checked.toString());
-                      }}
-                      className="opacity-0 w-0 h-0 peer"
-                    />
-                    <span className="absolute cursor-pointer inset-0 bg-white/20 rounded-full transition-all
-                                   peer-checked:bg-pink-500 before:absolute before:content-[''] before:h-5 before:w-5
-                                   before:left-0.5 before:bottom-0.5 before:bg-white before:rounded-full before:transition-all
-                                   peer-checked:before:translate-x-6" />
-                  </label>
+                  <AppleSwitch
+                    checked={dynamicGreetings}
+                    onCheckedChange={(checked) => {
+                      setDynamicGreetings(checked);
+                      localStorage.setItem('dynamicGreetings', checked.toString());
+                    }}
+                    size="sm"
+                    aria-label="Show dynamic greetings"
+                  />
                 </div>
 
                 <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
@@ -617,22 +644,16 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                     <div className="font-medium mb-1">Show greetings</div>
                     <div className="text-sm text-white/60">Turn off to hide dashboard greetings.</div>
                   </div>
-                  <label className="relative inline-block w-12 h-6">
-                    <input
-                      type="checkbox"
-                      checked={showGreetings}
-                      onChange={(e) => {
-                        setShowGreetings(e.target.checked);
-                        localStorage.setItem('showGreetings', e.target.checked.toString());
-                        window.location.reload();
-                      }}
-                      className="opacity-0 w-0 h-0 peer"
-                    />
-                    <span className="absolute cursor-pointer inset-0 bg-white/20 rounded-full transition-all
-                                   peer-checked:bg-pink-500 before:absolute before:content-[''] before:h-5 before:w-5
-                                   before:left-0.5 before:bottom-0.5 before:bg-white before:rounded-full before:transition-all
-                                   peer-checked:before:translate-x-6" />
-                  </label>
+                  <AppleSwitch
+                    checked={showGreetings}
+                    onCheckedChange={(checked) => {
+                      setShowGreetings(checked);
+                      localStorage.setItem('showGreetings', checked.toString());
+                      window.location.reload();
+                    }}
+                    size="sm"
+                    aria-label="Show greetings"
+                  />
                 </div>
               </div>
             </div>
@@ -648,33 +669,150 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                   <div className="font-medium mb-1">Matrix Display</div>
                   <div className="text-sm text-white/60">Show animated matrix display in bottom corner. Click to cycle animations.</div>
                 </div>
-                <label className="relative inline-block w-12 h-6">
-                  <input
-                    type="checkbox"
-                    checked={matrixDisplay}
-                    onChange={(e) => {
-                      setMatrixDisplay(e.target.checked);
-                      localStorage.setItem('matrixDisplay', e.target.checked.toString());
-                      window.location.reload();
-                    }}
-                    className="opacity-0 w-0 h-0 peer"
-                  />
-                  <span className="absolute cursor-pointer inset-0 bg-white/20 rounded-full transition-all
-                                 peer-checked:bg-pink-500 before:absolute before:content-[''] before:h-5 before:w-5
-                                 before:left-0.5 before:bottom-0.5 before:bg-white before:rounded-full before:transition-all
-                                 peer-checked:before:translate-x-6" />
-                </label>
+                <AppleSwitch
+                  checked={matrixDisplay}
+                  onCheckedChange={(checked) => {
+                    setMatrixDisplay(checked);
+                    localStorage.setItem('matrixDisplay', checked.toString());
+                    window.location.reload();
+                  }}
+                  size="sm"
+                  aria-label="Matrix Display"
+                />
               </div>
             </div>
           )}
 
           {/* Placeholder Sections */}
-          {['stats', 'profile'].includes(activeSection) && (
+          {activeSection === 'stats' && (
             <div>
               <h2 className="text-2xl font-semibold mb-6">
                 {navItems.find(i => i.id === activeSection)?.label}
               </h2>
               <p className="text-white/60">Settings for this section coming soon...</p>
+            </div>
+          )}
+
+          {/* Profile Section */}
+          {activeSection === 'profile' && (
+            <div className="space-y-8">
+              <div>
+                <h2 className="text-2xl font-semibold mb-6">Profile</h2>
+                
+                {/* Avatar Section */}
+                <div className="bg-white/5 rounded-xl p-6 mb-6">
+                  <h3 className="text-lg font-medium mb-4">Avatar</h3>
+                  <div className="flex items-center gap-6">
+                    <AvatarPicker
+                      currentAvatar={avatar}
+                      onAvatarChange={async (newAvatar) => {
+                        setAvatar(newAvatar);
+                        await db.user_profile.update('current', {
+                          avatar: newAvatar,
+                          updatedAt: new Date(),
+                        });
+                      }}
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm text-white/60 mb-2">
+                        Choose an emoji or upload your own image
+                      </p>
+                      <p className="text-xs text-white/40">
+                        Your avatar appears in the dashboard greeting
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Username Section */}
+                <div className="bg-white/5 rounded-xl p-6">
+                  <h3 className="text-lg font-medium mb-4">Username</h3>
+                  <div className="flex items-center gap-3">
+                    {isEditingUsername ? (
+                      <>
+                        <input
+                          type="text"
+                          value={tempUsername}
+                          onChange={(e) => setTempUsername(e.target.value)}
+                          onKeyDown={async (e) => {
+                            if (e.key === 'Enter') {
+                              const trimmed = tempUsername.trim();
+                              if (trimmed) {
+                                setUsername(trimmed);
+                                await db.user_profile.update('current', {
+                                  username: trimmed,
+                                  updatedAt: new Date(),
+                                });
+                                setIsEditingUsername(false);
+                              }
+                            } else if (e.key === 'Escape') {
+                              setIsEditingUsername(false);
+                            }
+                          }}
+                          className="flex-1 px-4 py-2 bg-[#0f141b] border border-[#283341] rounded text-white text-sm focus:outline-none focus:border-purple-500/50"
+                          placeholder="Enter username"
+                          autoFocus
+                        />
+                        <button
+                          onClick={async () => {
+                            const trimmed = tempUsername.trim();
+                            if (trimmed) {
+                              setUsername(trimmed);
+                              await db.user_profile.update('current', {
+                                username: trimmed,
+                                updatedAt: new Date(),
+                              });
+                              setIsEditingUsername(false);
+                            }
+                          }}
+                          className="px-4 py-2 bg-purple-500/90 hover:bg-purple-500 text-white font-medium rounded transition-colors text-sm"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => setIsEditingUsername(false)}
+                          className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-medium rounded transition-colors text-sm"
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex-1 px-4 py-2 bg-[#0f141b] border border-[#283341] rounded text-white text-sm">
+                          {username}
+                        </div>
+                        <button
+                          onClick={() => {
+                            setTempUsername(username);
+                            setIsEditingUsername(true);
+                          }}
+                          className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-medium rounded transition-colors text-sm"
+                        >
+                          Edit
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  <p className="text-xs text-white/40 mt-2">
+                    This name appears in your dashboard greeting
+                  </p>
+                </div>
+
+                {/* Profile Stats */}
+                <div className="bg-white/5 rounded-xl p-6 mt-6">
+                  <h3 className="text-lg font-medium mb-4">Account</h3>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-white/60">Profile created</span>
+                      <span className="text-white">{new Date().toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-white/60">Last updated</span>
+                      <span className="text-white">{new Date().toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>

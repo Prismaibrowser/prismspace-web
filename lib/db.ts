@@ -118,6 +118,14 @@ export interface AppSettings {
   value: string; // JSON stringified value
 }
 
+export interface UserProfile {
+  key: 'current'; // Single row
+  username: string;
+  avatar: string; // base64 encoded image or emoji
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface StoredFile {
   key: string;
   blob: Blob;
@@ -142,6 +150,7 @@ export class PrismDatabase extends Dexie {
   ai_tool_history!: Table<AiToolHistory, number>;
   language_learning_stats!: Table<LanguageLearningStats, string>;
   settings!: Table<AppSettings, string>;
+  user_profile!: Table<UserProfile, string>;
   files!: Table<StoredFile, string>;
 
   constructor() {
@@ -177,6 +186,7 @@ export class PrismDatabase extends Dexie {
       ai_tool_history: '++id, toolType, createdAt',
       language_learning_stats: '&key',
       settings: '&key',
+      user_profile: '&key',
       files: '&key'
     });
   }
