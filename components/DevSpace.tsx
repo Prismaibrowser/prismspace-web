@@ -49,18 +49,6 @@ const tools: Tool[] = [
       'Create harmonious schemes'
     ]
   },
-  {
-    icon: '🤖',
-    title: 'Prompt Synthesizer',
-    desc: 'AI-powered prompt enhancement tool',
-    action: 'prompt-synthesizer',
-    uses: [
-      'Enhance AI prompts',
-      'Get better AI responses',
-      'Learn prompt engineering',
-      'Save and reuse templates'
-    ]
-  },
 
   {
     icon: '⏱️',
@@ -112,67 +100,7 @@ const tools: Tool[] = [
     ]
   },
 
-  {
-    icon: '✍️',
-    title: 'Writing Assistant',
-    desc: 'AI writing improvement, translate, summarize & more',
-    action: 'writing-assistant',
-    uses: [
-      'Improve your writing',
-      'Translate between languages',
-      'Summarize long texts',
-      'Fix grammar and style'
-    ]
-  },
 
-  {
-    icon: '🔍',
-    title: 'Code Explainer',
-    desc: 'Explain code for learners & junior devs',
-    action: 'code-explainer',
-    uses: [
-      'Understand code snippets',
-      'Learn programming concepts',
-      'Get line-by-line explanations',
-      'Quiz yourself on code'
-    ]
-  },
-  {
-    icon: '⇄',
-    title: 'Code Translator',
-    desc: 'Convert code between 12+ programming languages',
-    action: 'code-translator',
-    uses: [
-      'Convert between languages',
-      'Learn language differences',
-      'Port legacy code',
-      'Understand idioms'
-    ]
-  },
-  {
-    icon: '🧠',
-    title: 'Decision Analyzer',
-    desc: 'AI deep analysis with thinking mode for decisions',
-    action: 'decision-analyzer',
-    uses: [
-      'Analyze tough decisions',
-      'Compare multiple options',
-      'Get unbiased recommendations',
-      'Export analysis reports'
-    ]
-  },
-  {
-    icon: '🐝',
-    title: 'Agent Swarm',
-    desc: 'Multi-agent swarm orchestration',
-    action: 'agent-swarm',
-    uses: [
-      'Launch multi-agent swarms',
-      'Monitor live execution DAGs',
-      'Human-in-the-loop approvals',
-      'Stream real-time agent logs'
-    ]
-  },
 ];
 
 interface DevSpaceProps {

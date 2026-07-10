@@ -4,9 +4,27 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { ClockStyle } from './Clock';
 import { ClockPreview } from './ClockPreview';
+import { db } from '@/lib/db';
 
-type SettingsSection = 'clock' | 'themes' | 'stats' | 'music' | 
-  'notepad' | 'sounds' | 'quotes' | 'extras' | 'profile';
+type SettingsSection = 'clock' | 'themes' | 'stats' | 'quotes' | 'extras' | 'profile';
+type BackgroundMediaType = 'image' | 'video';
+
+interface BackgroundChoice {
+  name: string;
+  path: string;
+  mediaType: BackgroundMediaType;
+}
+
+interface StoredBackgroundSetting {
+  source: 'static' | 'custom';
+  mediaType: BackgroundMediaType;
+  path?: string;
+  fileKey?: string;
+  name?: string;
+}
+
+const BACKGROUND_SETTING_KEY = 'selected_background';
+const CUSTOM_WALLPAPER_KEY = 'custom-wallpaper';
 
 const clockStyles: { name: string; value: ClockStyle }[] = [
   { name: 'Default', value: 'default' },
@@ -26,16 +44,47 @@ const clockStyles: { name: string; value: ClockStyle }[] = [
   { name: 'Zombiess', value: 'zombiess' },
 ];
 
-const backgrounds = [
-  { name: 'Default', path: '/images/BG.png' },
-  { name: 'Wallpaper 1', path: '/images/Wallpapers/1 (1).jpg' },
-  { name: 'Wallpaper 2', path: '/images/Wallpapers/1 (1).png' },
-  { name: 'Wallpaper 3', path: '/images/Wallpapers/1 (2).jpg' },
-  { name: 'Wallpaper 4', path: '/images/Wallpapers/1 (2).png' },
-  { name: 'Wallpaper 5', path: '/images/Wallpapers/1 (3).jpg' },
-  { name: 'Wallpaper 6', path: '/images/Wallpapers/1 (3).png' },
-  { name: 'Wallpaper 7', path: '/images/Wallpapers/1 (4).png' },
+const backgrounds: BackgroundChoice[] = [
+  { name: 'Default', path: '/images/BG.png', mediaType: 'image' },
+  { name: 'Animated 1', path: '/images/bg-gifs/1.gif', mediaType: 'image' },
+  { name: 'Animated 2', path: '/images/bg-gifs/2.gif', mediaType: 'image' },
+  { name: 'Wallpaper 1', path: '/images/Wallpapers/1 (1).jpg', mediaType: 'image' },
+  { name: 'Wallpaper 2', path: '/images/Wallpapers/1 (1).png', mediaType: 'image' },
+  { name: 'Wallpaper 3', path: '/images/Wallpapers/1 (2).jpg', mediaType: 'image' },
+  { name: 'Wallpaper 4', path: '/images/Wallpapers/1 (2).png', mediaType: 'image' },
+  { name: 'Wallpaper 5', path: '/images/Wallpapers/1 (3).jpg', mediaType: 'image' },
+  { name: 'Wallpaper 6', path: '/images/Wallpapers/1 (3).png', mediaType: 'image' },
+  { name: 'Wallpaper 7', path: '/images/Wallpapers/1 (4).png', mediaType: 'image' },
 ];
+
+function getMediaTypeFromMime(mimeType: string): BackgroundMediaType {
+  return mimeType.startsWith('video/') ? 'video' : 'image';
+}
+
+function getMediaTypeFromPath(path: string): BackgroundMediaType {
+  return /\.(mp4|webm|ogg)$/i.test(path) ? 'video' : 'image';
+}
+
+function toSelectedBackground(value: string): StoredBackgroundSetting {
+  if (value === 'custom') {
+    return {
+      source: 'custom',
+      mediaType: 'image',
+      fileKey: CUSTOM_WALLPAPER_KEY,
+    };
+  }
+
+  return {
+    source: 'static',
+    mediaType: getMediaTypeFromPath(value),
+    path: value,
+  };
+}
+
+function getSelectionId(setting: StoredBackgroundSetting | null | undefined) {
+  if (!setting) return '/images/BG.png';
+  return setting.source === 'custom' ? 'custom' : setting.path || '/images/BG.png';
+}
 
 export function SettingsModal({ onClose }: { onClose: () => void }) {
   const [activeSection, setActiveSection] = useState<SettingsSection>('clock');
@@ -44,9 +93,17 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const [clockColor, setClockColor] = useState('#ffffff');
   const [colorHistory, setColorHistory] = useState<string[]>([]);
   const [selectedBg, setSelectedBg] = useState('/images/BG.png');
+  const [customPreviewUrl, setCustomPreviewUrl] = useState<string | null>(null);
+  const [customMediaType, setCustomMediaType] = useState<BackgroundMediaType>('image');
   const [dynamicGreetings, setDynamicGreetings] = useState(true);
   const [showGreetings, setShowGreetings] = useState(true);
   const [matrixDisplay, setMatrixDisplay] = useState(true);
+
+  useEffect(() => {
+    return () => {
+      if (customPreviewUrl) URL.revokeObjectURL(customPreviewUrl);
+    };
+  }, [customPreviewUrl]);
 
   useEffect(() => {
     // Load saved settings
@@ -54,7 +111,6 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
     const savedStyle = (localStorage.getItem('clockStyle') || 'default') as ClockStyle;
     const savedColor = localStorage.getItem('clockColor') || '#ffffff';
     const savedHistory = JSON.parse(localStorage.getItem('colorHistory') || '[]');
-    const savedBg = localStorage.getItem('selectedBackground') || '/images/BG.png';
     const savedDynamicGreetings = localStorage.getItem('dynamicGreetings') !== 'false';
     const savedShowGreetings = localStorage.getItem('showGreetings') !== 'false';
     const savedMatrixDisplay = localStorage.getItem('matrixDisplay') !== 'false';
@@ -63,10 +119,54 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
     setClockStyle(savedStyle);
     setClockColor(savedColor);
     setColorHistory(savedHistory);
-    setSelectedBg(savedBg);
     setDynamicGreetings(savedDynamicGreetings);
     setShowGreetings(savedShowGreetings);
     setMatrixDisplay(savedMatrixDisplay);
+
+    let isMounted = true;
+    let previewUrl: string | null = null;
+
+    const loadBackgroundSetting = async () => {
+      try {
+        const savedSetting = await db.settings.get(BACKGROUND_SETTING_KEY);
+        const parsedSetting = savedSetting
+          ? (JSON.parse(savedSetting.value) as StoredBackgroundSetting)
+          : null;
+        const legacyBg = localStorage.getItem('selectedBackground');
+        const nextSetting = parsedSetting || toSelectedBackground(legacyBg || '/images/BG.png');
+
+        if (!parsedSetting && legacyBg) {
+          await db.settings.put({
+            key: BACKGROUND_SETTING_KEY,
+            value: JSON.stringify(nextSetting),
+          });
+        }
+
+        if (nextSetting.source === 'custom') {
+          const file = await db.files.get(nextSetting.fileKey || CUSTOM_WALLPAPER_KEY);
+          if (file?.blob) {
+            previewUrl = URL.createObjectURL(file.blob);
+            if (isMounted) {
+              setCustomPreviewUrl(previewUrl);
+              setCustomMediaType(getMediaTypeFromMime(file.mimeType));
+            }
+          }
+        }
+
+        if (isMounted) {
+          setSelectedBg(getSelectionId(nextSetting));
+        }
+      } catch (err) {
+        console.error('Failed to load background setting:', err);
+      }
+    };
+
+    loadBackgroundSetting();
+
+    return () => {
+      isMounted = false;
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
   }, []);
 
   const handleFormatChange = (format: '12' | '24') => {
@@ -98,21 +198,82 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
     localStorage.removeItem('colorHistory');
   };
 
-  const handleBackgroundChange = (bgPath: string) => {
-    setSelectedBg(bgPath);
-    localStorage.setItem('selectedBackground', bgPath);
-    document.body.style.backgroundImage = `url('${bgPath}')`;
+  const handleBackgroundChange = async (bgPath: string) => {
+    const background = backgrounds.find((item) => item.path === bgPath);
+    const setting: StoredBackgroundSetting = background
+      ? {
+          source: 'static',
+          mediaType: background.mediaType,
+          path: background.path,
+          name: background.name,
+        }
+      : toSelectedBackground(bgPath);
+
+    setSelectedBg(getSelectionId(setting));
+    await db.settings.put({
+      key: BACKGROUND_SETTING_KEY,
+      value: JSON.stringify(setting),
+    });
+    window.dispatchEvent(new CustomEvent('prism:background-change'));
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCustomBackgroundSelect = async () => {
+    const file = await db.files.get(CUSTOM_WALLPAPER_KEY);
+    if (!file?.blob) return;
+
+    const setting: StoredBackgroundSetting = {
+      source: 'custom',
+      mediaType: getMediaTypeFromMime(file.mimeType),
+      fileKey: CUSTOM_WALLPAPER_KEY,
+    };
+
+    setSelectedBg('custom');
+    setCustomMediaType(setting.mediaType);
+    await db.settings.put({
+      key: BACKGROUND_SETTING_KEY,
+      value: JSON.stringify(setting),
+    });
+    window.dispatchEvent(new CustomEvent('prism:background-change'));
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        handleBackgroundChange(dataUrl);
-      };
-      reader.readAsDataURL(file);
+      if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+        alert('Please upload an image, GIF, or video file.');
+        return;
+      }
+
+      if (file.size > 50 * 1024 * 1024) {
+        alert("File is too large! Please upload a file smaller than 50MB.");
+        return;
+      }
+
+      try {
+        await db.files.put({
+          key: CUSTOM_WALLPAPER_KEY,
+          blob: file,
+          mimeType: file.type
+        });
+        await db.settings.put({
+          key: BACKGROUND_SETTING_KEY,
+          value: JSON.stringify({
+            source: 'custom',
+            mediaType: getMediaTypeFromMime(file.type),
+            fileKey: CUSTOM_WALLPAPER_KEY,
+            name: file.name,
+          } satisfies StoredBackgroundSetting),
+        });
+
+        if (customPreviewUrl) URL.revokeObjectURL(customPreviewUrl);
+        setCustomPreviewUrl(URL.createObjectURL(file));
+        setCustomMediaType(getMediaTypeFromMime(file.type));
+        setSelectedBg('custom');
+        window.dispatchEvent(new CustomEvent('prism:background-change'));
+      } catch (err) {
+        console.error('Failed to save custom wallpaper:', err);
+        alert('Failed to save custom wallpaper.');
+      }
     }
   };
 
@@ -120,9 +281,6 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
     { id: 'clock', icon: '🕐', label: 'Clock' },
     { id: 'themes', icon: '🎨', label: 'Themes' },
     { id: 'stats', icon: '📊', label: 'Stats' },
-    { id: 'music', icon: '🎵', label: 'Music' },
-    { id: 'notepad', icon: '📝', label: 'Notepad' },
-    { id: 'sounds', icon: '🔊', label: 'Sounds' },
     { id: 'quotes', icon: '💬', label: 'Quotes' },
     { id: 'extras', icon: '⚡', label: 'Extras' },
     { id: 'profile', icon: '👤', label: 'Profile' },
@@ -349,7 +507,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                 <div className="mb-4">
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/*,image/gif,video/mp4,video/webm,video/ogg"
                     onChange={handleFileUpload}
                     className="hidden"
                     id="wallpaperUpload"
@@ -358,10 +516,41 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                     htmlFor="wallpaperUpload"
                     className="inline-block px-6 py-3 bg-white/10 rounded-lg hover:bg-white/20 transition-all cursor-pointer"
                   >
-                    Upload Custom Wallpaper
+                    Upload GIF or Video Wallpaper
                   </label>
                 </div>
                 <div className="grid grid-cols-4 gap-4">
+                  {customPreviewUrl && (
+                    <button
+                      onClick={handleCustomBackgroundSelect}
+                      className={`group relative aspect-video rounded-xl overflow-hidden border-2 transition-all ${
+                        selectedBg === 'custom'
+                          ? 'border-pink-500'
+                          : 'border-white/20 hover:border-white/40'
+                      }`}
+                      title="Custom wallpaper"
+                    >
+                      {customMediaType === 'video' ? (
+                        <video
+                          src={customPreviewUrl}
+                          autoPlay
+                          muted
+                          loop
+                          playsInline
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <img
+                          src={customPreviewUrl}
+                          alt="Custom wallpaper"
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      <span className="absolute left-2 top-2 rounded bg-black/60 px-2 py-1 text-[11px] font-medium text-white">
+                        Custom
+                      </span>
+                    </button>
+                  )}
                   {backgrounds.map((bg, i) => (
                     <button
                       key={i}
@@ -371,14 +560,23 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                           ? 'border-pink-500'
                           : 'border-white/20 hover:border-white/40'
                       }`}
+                      title={bg.name}
                     >
-                      <Image
-                        src={bg.path}
-                        alt={bg.name}
-                        width={200}
-                        height={113}
-                        className="w-full h-full object-cover"
-                      />
+                      {bg.mediaType === 'video' ? (
+                        <video
+                          src={bg.path}
+                          muted
+                          loop
+                          playsInline
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <img
+                          src={bg.path}
+                          alt={bg.name}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -471,7 +669,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
           )}
 
           {/* Placeholder Sections */}
-          {['stats', 'music', 'notepad', 'sounds', 'profile'].includes(activeSection) && (
+          {['stats', 'profile'].includes(activeSection) && (
             <div>
               <h2 className="text-2xl font-semibold mb-6">
                 {navItems.find(i => i.id === activeSection)?.label}

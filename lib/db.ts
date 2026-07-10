@@ -118,6 +118,12 @@ export interface AppSettings {
   value: string; // JSON stringified value
 }
 
+export interface StoredFile {
+  key: string;
+  blob: Blob;
+  mimeType: string;
+}
+
 // ============================================================================
 // DEXIE DATABASE CLASS
 // ============================================================================
@@ -136,6 +142,7 @@ export class PrismDatabase extends Dexie {
   ai_tool_history!: Table<AiToolHistory, number>;
   language_learning_stats!: Table<LanguageLearningStats, string>;
   settings!: Table<AppSettings, string>;
+  files!: Table<StoredFile, string>;
 
   constructor() {
     super('PrismDB');
@@ -150,10 +157,27 @@ export class PrismDatabase extends Dexie {
       habit_logs: '++id, [habitId+date], habitId, date',
       random_picker_history: '++id, mode, createdAt',
       random_picker_settings: '&mode',
-      shortcuts: '++id, appName, category, pinned, custom',
+      shortcuts: '++id, appName, category, action, pinned, custom',
       ai_tool_history: '++id, toolType, createdAt',
       language_learning_stats: '&key',
       settings: '&key'
+    });
+
+    this.version(2).stores({
+      checklists: '++id, name, createdAt, updatedAt',
+      checklist_items: '++id, checklistId, [checklistId+order], completed, createdAt',
+      focus_sessions: '++id, startedAt, completed',
+      focus_settings: '&key',
+      bookmarks: '++id, url, createdAt, lastVisitedAt, visitCount, *tags',
+      habits: '++id, name, createdAt',
+      habit_logs: '++id, [habitId+date], habitId, date',
+      random_picker_history: '++id, mode, createdAt',
+      random_picker_settings: '&mode',
+      shortcuts: '++id, appName, category, action, pinned, custom',
+      ai_tool_history: '++id, toolType, createdAt',
+      language_learning_stats: '&key',
+      settings: '&key',
+      files: '&key'
     });
   }
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
+import { BackgroundManager } from "@/components/BackgroundManager";
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -18,6 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("font-sans", geist.variable)}>
       <body>
+        <BackgroundManager />
         {children}
       </body>
     </html>
