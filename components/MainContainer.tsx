@@ -53,11 +53,6 @@ export function MainContainer() {
   return (
     <div
       className="h-screen flex flex-col items-center justify-center text-center sticky top-0 z-[1]"
-      style={{
-        backdropFilter: 'blur(2px)',
-        background:
-          'linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.1) 100%)',
-      }}
     >
       <div className="flex flex-col items-center gap-[20px] animate-fadeInUp w-full px-6">
         {showGreetings && (
