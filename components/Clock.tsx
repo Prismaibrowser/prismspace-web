@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 
-type ClockStyle = 'default' | 'minimal' | 'serif' | 'handwritten' | 'minimal-light' | 
+export type ClockStyle = 'default' | 'minimal' | 'serif' | 'handwritten' | 'minimal-light' | 
   'serif-condensed' | 'bitcount' | 'corpta' | 'fenotype' | 'nclkemgor' | 
   'westiva' | 'ammonite' | 'crude' | 'ghetto' | 'zombiess';
 
-const clockStyleClasses: Record<ClockStyle, string> = {
+export const clockStyleClasses: Record<ClockStyle, string> = {
   default: 'font-montserrat font-black',
   minimal: 'font-sans font-light tracking-[0.1em]',
   serif: 'font-serif font-normal tracking-tight',

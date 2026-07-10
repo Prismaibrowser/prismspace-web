@@ -8,12 +8,10 @@ import { TopQuote } from '@/components/TopQuote';
 import { QuickActions } from '@/components/QuickActions';
 import { SettingsModal } from '@/components/SettingsModal';
 import { PanelManager, usePanelManager } from '@/components/PanelManager';
-import { FloatingMusicPlayer } from '@/components/FloatingMusicPlayer';
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [showMatrix, setShowMatrix] = useState(true);
-  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const { activePanel, openPanel, closePanel } = usePanelManager();
 
   // Open Agent Swarm panel from SearchBar custom event
@@ -64,14 +62,10 @@ Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}
       <QuickActions
         onSettingsClick={() => setShowSettings(true)}
         onNotepadClick={() => openPanel('notepad')}
-        onMusicPlayerClick={() => setShowMusicPlayer(true)}
         showMatrix={showMatrix}
       />
       {showSettings && (
         <SettingsModal onClose={() => setShowSettings(false)} />
-      )}
-      {showMusicPlayer && (
-        <FloatingMusicPlayer onClose={() => setShowMusicPlayer(false)} />
       )}
       <PanelManager activePanel={activePanel} onClose={closePanel} />
     </>

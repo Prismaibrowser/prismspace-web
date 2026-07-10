@@ -5,14 +5,12 @@ import { MatrixDisplay } from '@/components/MatrixDisplay';
 interface QuickActionsProps {
   onSettingsClick?: () => void;
   onNotepadClick?: () => void;
-  onMusicPlayerClick?: () => void;
   showMatrix?: boolean;
 }
 
 export function QuickActions({
   onSettingsClick,
   onNotepadClick,
-  onMusicPlayerClick,
   showMatrix = true,
 }: QuickActionsProps) {
   const toggleFullscreen = () => {
@@ -38,10 +36,6 @@ export function QuickActions({
         </button>
 
         {showMatrix && <MatrixDisplay />}
-
-        <button onClick={onMusicPlayerClick} className={btnClass} title="Music Player">
-          🎵
-        </button>
       </div>
 
       {/* ── Bottom-right: Settings | Fullscreen ── */}

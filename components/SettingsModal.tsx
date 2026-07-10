@@ -2,30 +2,28 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-
-type ClockStyle = 'default' | 'minimal' | 'serif' | 'handwritten' | 'minimal-light' | 
-  'serif-condensed' | 'bitcount' | 'corpta' | 'fenotype' | 'nclkemgor' | 
-  'westiva' | 'ammonite' | 'crude' | 'ghetto' | 'zombiess';
+import { ClockStyle } from './Clock';
+import { ClockPreview } from './ClockPreview';
 
 type SettingsSection = 'clock' | 'themes' | 'stats' | 'music' | 
   'notepad' | 'sounds' | 'quotes' | 'extras' | 'profile';
 
-const clockStyles: { name: string; value: ClockStyle; preview: string }[] = [
-  { name: 'Default', value: 'default', preview: '/clock-previews/default.html' },
-  { name: 'Minimal', value: 'minimal', preview: '/clock-previews/minimal.html' },
-  { name: 'Serif', value: 'serif', preview: '/clock-previews/serif.html' },
-  { name: 'Handwritten', value: 'handwritten', preview: '/clock-previews/handwritten.html' },
-  { name: 'Permanent Marker', value: 'minimal-light', preview: '/clock-previews/minimal-light.html' },
-  { name: 'Serif Condensed', value: 'serif-condensed', preview: '/clock-previews/serif-condensed.html' },
-  { name: 'Bitcount Grid', value: 'bitcount', preview: '/clock-previews/bitcount.html' },
-  { name: 'Corpta', value: 'corpta', preview: '/clock-previews/corpta.html' },
-  { name: 'Fenotype Wonder', value: 'fenotype', preview: '/clock-previews/fenotype.html' },
-  { name: 'NCL Kemgor', value: 'nclkemgor', preview: '/clock-previews/nclkemgor.html' },
-  { name: 'Westiva', value: 'westiva', preview: '/clock-previews/westiva.html' },
-  { name: 'Ammonite', value: 'ammonite', preview: '/clock-previews/ammonite.html' },
-  { name: 'Crude', value: 'crude', preview: '/clock-previews/crude.html' },
-  { name: 'Ghetto', value: 'ghetto', preview: '/clock-previews/ghetto.html' },
-  { name: 'Zombiess', value: 'zombiess', preview: '/clock-previews/zombiess.html' },
+const clockStyles: { name: string; value: ClockStyle }[] = [
+  { name: 'Default', value: 'default' },
+  { name: 'Minimal', value: 'minimal' },
+  { name: 'Serif', value: 'serif' },
+  { name: 'Handwritten', value: 'handwritten' },
+  { name: 'Permanent Marker', value: 'minimal-light' },
+  { name: 'Serif Condensed', value: 'serif-condensed' },
+  { name: 'Bitcount Grid', value: 'bitcount' },
+  { name: 'Corpta', value: 'corpta' },
+  { name: 'Fenotype Wonder', value: 'fenotype' },
+  { name: 'NCL Kemgor', value: 'nclkemgor' },
+  { name: 'Westiva', value: 'westiva' },
+  { name: 'Ammonite', value: 'ammonite' },
+  { name: 'Crude', value: 'crude' },
+  { name: 'Ghetto', value: 'ghetto' },
+  { name: 'Zombiess', value: 'zombiess' },
 ];
 
 const backgrounds = [
@@ -254,24 +252,76 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
 
               <div>
                 <h2 className="text-2xl font-semibold mb-6">Clock Style</h2>
-                <div className="grid grid-cols-3 gap-4">
-                  {clockStyles.map((style) => (
-                    <button
-                      key={style.value}
-                      onClick={() => handleStyleChange(style.value)}
-                      className={`p-4 rounded-xl border-2 transition-all ${
-                        clockStyle === style.value
-                          ? 'border-pink-500 bg-pink-500/10'
-                          : 'border-white/20 hover:border-white/40'
-                      }`}
-                    >
-                      <iframe
-                        src={style.preview}
-                        className="w-full h-20 pointer-events-none mb-2 rounded"
-                      />
-                      <div className="text-sm">{style.name}</div>
-                    </button>
-                  ))}
+                <p className="text-white/60 text-sm mb-8">
+                  Choose the perfect typography to match your vibe
+                </p>
+                <div className="grid grid-cols-3 gap-5">
+                  {clockStyles.map((style) => {
+                    const isSelected = clockStyle === style.value;
+                    return (
+                      <button
+                        key={style.value}
+                        onClick={() => handleStyleChange(style.value)}
+                        className={`group relative overflow-hidden rounded-2xl transition-all duration-300 ${
+                          isSelected
+                            ? 'ring-2 ring-pink-500 ring-offset-2 ring-offset-black/50 shadow-[0_0_40px_rgba(236,72,153,0.3)]'
+                            : 'ring-1 ring-white/10 hover:ring-white/30 hover:shadow-[0_8px_32px_rgba(255,255,255,0.08)]'
+                        }`}
+                        style={{ aspectRatio: '16/11' }}
+                      >
+                        {/* Background gradient overlay */}
+                        <div className={`absolute inset-0 bg-gradient-to-br transition-opacity duration-300 ${
+                          isSelected
+                            ? 'from-pink-500/20 via-purple-500/10 to-transparent opacity-100'
+                            : 'from-white/5 to-transparent opacity-0 group-hover:opacity-100'
+                        }`} />
+                        
+                        {/* Clock preview component */}
+                        <div className="relative h-full w-full overflow-hidden">
+                          <div className={`absolute inset-0 w-full h-full transition-all duration-300 pointer-events-none ${isSelected ? 'scale-110 brightness-110' : 'scale-100'}`}>
+                            <ClockPreview style={style.value} color={clockColor} />
+                          </div>
+                          
+                          {/* Gloss effect */}
+                          <div className={`absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent opacity-0 
+                                         group-hover:opacity-100 transition-opacity duration-300 pointer-events-none ${
+                            isSelected ? 'opacity-40' : ''
+                          }`} />
+                        </div>
+
+                        {/* Label with backdrop */}
+                        <div className={`absolute bottom-0 left-0 right-0 p-3.5 backdrop-blur-xl transition-all duration-300 ${
+                          isSelected
+                            ? 'bg-gradient-to-t from-pink-500/30 via-pink-500/20 to-transparent'
+                            : 'bg-gradient-to-t from-black/60 via-black/40 to-transparent group-hover:from-black/70'
+                        }`}>
+                          <div className={`text-sm font-medium transition-all duration-300 ${
+                            isSelected 
+                              ? 'text-white' 
+                              : 'text-white/80 group-hover:text-white'
+                          }`}>
+                            {style.name}
+                          </div>
+                          
+                          {/* Selection indicator */}
+                          {isSelected && (
+                            <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-pink-500 
+                                          flex items-center justify-center animate-in zoom-in-0 duration-200">
+                              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Hover shine effect */}
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+                          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent 
+                                        translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
