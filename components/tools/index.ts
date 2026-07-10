@@ -7,6 +7,7 @@ export { HabitTracker } from './HabitTracker';
 export { MatrixDisplay } from './MatrixDisplay';
 export { NotepadPanel } from './NotepadPanel';
 export { ShortcutReference } from './ShortcutReference';
+export { WebScraperTool } from './WebScraperTool';
 
 // To be implemented:
 // export { CodeExplainer } from './CodeExplainer';

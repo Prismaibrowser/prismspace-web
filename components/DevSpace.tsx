@@ -49,6 +49,18 @@ const tools: Tool[] = [
       'Create harmonious schemes'
     ]
   },
+  {
+    icon: '🧾',
+    title: 'Web Scraper',
+    desc: 'Paste a link and export clean JSON or CSV',
+    action: 'web-scraper',
+    uses: [
+      'Scrape a single page',
+      'Crawl linked doc pages',
+      'Preview cleaned content',
+      'Download JSON or CSV'
+    ]
+  },
 
   {
     icon: '⏱️',

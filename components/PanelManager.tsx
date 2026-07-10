@@ -3,12 +3,13 @@
 import { useState, useEffect } from 'react';
 import { NotepadPanel } from './tools/NotepadPanel';
 import { ColorGenerator } from './tools/ColorGenerator';
+import { WebScraperTool } from './tools/WebScraperTool';
 import { AgentSwarm } from './AgentSwarm';
 
 type PanelType = 'notepad' | 
   'markdown-editor' | 'git-reference' | 'color-gen' | 'prompt-synthesizer' |
   'writing-assistant' | 'code-explainer' | 'code-translator' | 'decision-analyzer' |
-  'agent-swarm';
+  'web-scraper' | 'agent-swarm';
 
 interface PanelConfig {
   type: PanelType;
@@ -49,6 +50,13 @@ const panelConfigs: Record<PanelType, PanelConfig> = {
     position: 'right',
     width: '600px',
     component: ColorGenerator,
+  },
+  'web-scraper': {
+    type: 'web-scraper',
+    title: 'Web Scraper',
+    position: 'right',
+    width: '82%',
+    component: WebScraperTool,
   },
   'prompt-synthesizer': {
     type: 'prompt-synthesizer',
