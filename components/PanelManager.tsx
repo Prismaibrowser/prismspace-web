@@ -5,12 +5,13 @@ import { NotepadPanel } from './tools/NotepadPanel';
 import { ColorGenerator } from './tools/ColorGenerator';
 import { WebScraperTool } from './tools/WebScraperTool';
 import { PomodoroTimer } from './tools/PomodoroTimer';
+import { SQLPlayground } from './tools/SQLPlayground';
 import { AgentSwarm } from './AgentSwarm';
 
 type PanelType = 'notepad' | 
   'git-reference' | 'color-gen' | 'qr-generator' | 'prompt-synthesizer' |
   'writing-assistant' | 'code-explainer' | 'code-translator' | 'decision-analyzer' |
-  'web-scraper' | 'pomodoro-timer' | 'agent-swarm';
+  'web-scraper' | 'pomodoro-timer' | 'agent-swarm' | 'sql-playground';
 
 interface PanelConfig {
   type: PanelType;
@@ -65,6 +66,13 @@ const panelConfigs: Record<PanelType, PanelConfig> = {
     position: 'right',
     width: '82%',
     component: PomodoroTimer,
+  },
+  'sql-playground': {
+    type: 'sql-playground',
+    title: 'SQL Playground',
+    position: 'right',
+    width: '88%',
+    component: SQLPlayground,
   },
   'prompt-synthesizer': {
     type: 'prompt-synthesizer',

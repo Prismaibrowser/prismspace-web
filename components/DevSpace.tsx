@@ -75,6 +75,18 @@ const tools: Tool[] = [
     ]
   },
   {
+    icon: '🗄️',
+    title: 'SQL Playground',
+    desc: 'In-browser SQLite editor powered by WASM',
+    action: 'sql-playground',
+    uses: [
+      'Write and run SQL in-browser',
+      'Import .db or .sql files',
+      'Inspect schema and tables',
+      'Export results as CSV'
+    ]
+  },
+  {
     icon: '🔖',
     title: 'Bookmark Manager',
     desc: 'Save, tag, search, import, export, and track visits',
