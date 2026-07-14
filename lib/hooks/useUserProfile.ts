@@ -1,26 +1,28 @@
+import { useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, UserProfile } from '../db';
 
 export function useUserProfile() {
-  const profile = useLiveQuery(async () => {
-    let current = await db.user_profile.get('current');
-    
-    if (!current) {
-      // Create default profile
-      const now = new Date();
-      const defaultProfile: UserProfile = {
-        key: 'current',
-        username: 'User',
-        avatar: '👤',
-        createdAt: now,
-        updatedAt: now,
-      };
-      await db.user_profile.put(defaultProfile);
-      current = defaultProfile;
-    }
-    
-    return current;
-  });
+  // Seed the default profile once on mount — writes are NOT allowed inside useLiveQuery
+  useEffect(() => {
+    (async () => {
+      const existing = await db.user_profile.get('current');
+      if (!existing) {
+        const now = new Date();
+        const defaultProfile: UserProfile = {
+          key: 'current',
+          username: 'User',
+          avatar: '👤',
+          createdAt: now,
+          updatedAt: now,
+        };
+        await db.user_profile.put(defaultProfile);
+      }
+    })();
+  }, []);
+
+  // useLiveQuery is read-only — only reads here
+  const profile = useLiveQuery(() => db.user_profile.get('current'));
 
   const updateUsername = async (username: string) => {
     await db.user_profile.update('current', {

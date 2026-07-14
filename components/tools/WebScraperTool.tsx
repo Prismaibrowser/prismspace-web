@@ -9,9 +9,11 @@ interface WebScraperToolProps {
 interface ScrapePage {
   url: string;
   title: string;
+  description: string;
   content: string;
   markdown: string;
   html: string;
+  wordCount: number;
 }
 
 interface ScrapeResult {
@@ -196,6 +198,14 @@ export function WebScraperTool({ onClose }: WebScraperToolProps) {
               <span>Pages scraped</span>
               <strong className="font-mono text-white">{pageCount}</strong>
             </div>
+            {jsonResult && (
+              <div className="mt-2 flex justify-between gap-3">
+                <span>Total words</span>
+                <strong className="font-mono text-white">
+                  {jsonResult.pages.reduce((s, p) => s + (p.wordCount ?? 0), 0).toLocaleString()}
+                </strong>
+              </div>
+            )}
             <div className="mt-2 flex justify-between gap-3">
               <span>Output</span>
               <strong className="font-mono uppercase text-white">{format}</strong>
