@@ -8,7 +8,7 @@ import { PomodoroTimer } from './tools/PomodoroTimer';
 import { SQLPlayground } from './tools/SQLPlayground';
 import { AgentSwarm } from './AgentSwarm';
 
-type PanelType = 'notepad' | 
+type PanelType = 'notepad' |
   'git-reference' | 'color-gen' | 'qr-generator' | 'prompt-synthesizer' |
   'writing-assistant' | 'code-explainer' | 'code-translator' | 'decision-analyzer' |
   'web-scraper' | 'pomodoro-timer' | 'agent-swarm' | 'sql-playground';
@@ -159,7 +159,7 @@ export function PanelManager({ activePanel, onClose }: PanelManagerProps) {
                     ${config.position === 'left' ? 'border-r' : ''}
                     ${config.position === 'right' ? 'border-l' : ''}
                     ${config.position === 'full' ? 'border' : ''}`}
-        style={{ 
+        style={{
           width: config.position === 'full' ? '100%' : config.width,
           maxWidth: config.position === 'full' ? '90vw' : undefined,
         }}

@@ -205,24 +205,7 @@ export function GitReference({ onClose }: GitReferenceProps) {
         background: 'rgba(255,255,255,0.02)',
         gap: 16,
       }}>
-        {/* brand */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 28, height: 28, borderRadius: 8,
-            background: 'linear-gradient(135deg, #f97316 0%, #ef4444 100%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 14, fontWeight: 800, color: '#fff', letterSpacing: '-0.05em',
-            flexShrink: 0,
-          }}>g</div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 13.5, color: '#f1f5f9', letterSpacing: '-0.02em' }}>
-              git<span style={{ color: '#f97316' }}>ref</span>
-            </div>
-            <div style={{ fontSize: 9.5, color: '#475569', letterSpacing: '0.05em', textTransform: 'uppercase', marginTop: -1 }}>
-              command reference
-            </div>
-          </div>
-        </div>
+
 
         {/* tabs */}
         <nav style={{ display: 'flex', gap: 2, background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 3 }}>
