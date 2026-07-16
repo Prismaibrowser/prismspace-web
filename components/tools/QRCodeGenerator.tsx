@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useId } from 'react';
 import QRCode from 'qrcode';
 
 interface QRCodeGeneratorProps {
@@ -10,6 +10,197 @@ interface QRCodeGeneratorProps {
 type QRType = 'url' | 'text' | 'email' | 'phone' | 'sms' | 'wifi' | 'vcard';
 type ErrorCorrectionLevel = 'L' | 'M' | 'Q' | 'H';
 
+// ── Brand-aligned custom select ──────────────────────────────────────────────
+interface SelectOpt { value: string; label: string; }
+interface BrandSelectProps {
+  value: string;
+  onChange: (v: string) => void;
+  options: SelectOpt[];
+  id?: string;
+}
+
+function BrandSelect({ value, onChange, options, id }: BrandSelectProps) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const uid = useId();
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, [open]);
+
+  const selected = options.find(o => o.value === value);
+
+  return (
+    <div ref={ref} style={{ position: 'relative', userSelect: 'none' }}>
+      <button
+        type="button"
+        id={id ?? uid}
+        onClick={() => setOpen(p => !p)}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+          padding: '10px 14px',
+          background: 'rgba(255,255,255,0.04)',
+          border: open ? '1px solid rgba(0,255,136,0.45)' : '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 10,
+          color: '#fff',
+          fontSize: 13,
+          cursor: 'pointer',
+          transition: 'border-color 0.15s',
+          outline: 'none',
+          boxShadow: open ? '0 0 0 3px rgba(0,255,136,0.07)' : 'none',
+        }}
+      >
+        <span>{selected?.label ?? value}</span>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"
+          style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', flexShrink: 0 }}>
+          <path d="M1 3l4 4 4-4" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute',
+          zIndex: 50,
+          top: 'calc(100% + 6px)',
+          left: 0, right: 0,
+          background: 'rgba(14,14,20,0.98)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 10,
+          boxShadow: '0 12px 40px rgba(0,0,0,0.7)',
+          backdropFilter: 'blur(20px)',
+          overflow: 'hidden',
+          animation: 'qrDropIn 0.15s ease',
+        }}>
+          {options.map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                padding: '9px 14px',
+                fontSize: 13,
+                background: opt.value === value ? 'rgba(0,255,136,0.09)' : 'transparent',
+                color: opt.value === value ? '#00ff88' : 'rgba(255,255,255,0.75)',
+                fontWeight: opt.value === value ? 600 : 400,
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'background 0.1s',
+              }}
+              onMouseEnter={e => {
+                if (opt.value !== value) (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.05)';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.background = opt.value === value ? 'rgba(0,255,136,0.09)' : 'transparent';
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Shared input style ────────────────────────────────────────────────────────
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '10px 14px',
+  background: 'rgba(255,255,255,0.04)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: 10,
+  color: '#fff',
+  fontSize: 13,
+  outline: 'none',
+  transition: 'border-color 0.15s',
+  boxSizing: 'border-box',
+};
+
+function BrandInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <input
+      {...props}
+      style={{
+        ...inputStyle,
+        border: focused ? '1px solid rgba(0,255,136,0.45)' : '1px solid rgba(255,255,255,0.1)',
+        boxShadow: focused ? '0 0 0 3px rgba(0,255,136,0.07)' : 'none',
+        ...props.style,
+      }}
+      onFocus={e => { setFocused(true); props.onFocus?.(e); }}
+      onBlur={e => { setFocused(false); props.onBlur?.(e); }}
+    />
+  );
+}
+
+function BrandTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <textarea
+      {...props}
+      style={{
+        ...inputStyle,
+        resize: 'none',
+        border: focused ? '1px solid rgba(0,255,136,0.45)' : '1px solid rgba(255,255,255,0.1)',
+        boxShadow: focused ? '0 0 0 3px rgba(0,255,136,0.07)' : 'none',
+        ...props.style,
+      }}
+      onFocus={e => { setFocused(true); props.onFocus?.(e); }}
+      onBlur={e => { setFocused(false); props.onBlur?.(e); }}
+    />
+  );
+}
+
+// ── Section card ──────────────────────────────────────────────────────────────
+function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return (
+    <div style={{
+      background: 'rgba(255,255,255,0.03)',
+      border: '1px solid rgba(255,255,255,0.07)',
+      borderRadius: 16,
+      padding: '20px',
+      ...style,
+    }}>
+      {children}
+    </div>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <p style={{
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.1em',
+      textTransform: 'uppercase',
+      color: 'rgba(255,255,255,0.35)',
+      marginBottom: 14,
+    }}>
+      {children}
+    </p>
+  );
+}
+
+// ── Label ─────────────────────────────────────────────────────────────────────
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <label style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.5)', marginBottom: 7 }}>
+      {children}
+    </label>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 export function QRCodeGenerator({ onClose }: QRCodeGeneratorProps) {
   const [qrType, setQRType] = useState<QRType>('url');
   const [qrData, setQRData] = useState('');
@@ -19,18 +210,14 @@ export function QRCodeGenerator({ onClose }: QRCodeGeneratorProps) {
   const [darkColor, setDarkColor] = useState('#000000');
   const [lightColor, setLightColor] = useState('#ffffff');
   const [copied, setCopied] = useState(false);
-  
-  // Advanced options
   const [margin, setMargin] = useState(4);
   const [includeMargin, setIncludeMargin] = useState(true);
 
-  // WiFi fields
   const [wifiSSID, setWifiSSID] = useState('');
   const [wifiPassword, setWifiPassword] = useState('');
   const [wifiEncryption, setWifiEncryption] = useState<'WPA' | 'WEP' | 'nopass'>('WPA');
   const [wifiHidden, setWifiHidden] = useState(false);
 
-  // vCard fields
   const [vcardName, setVcardName] = useState('');
   const [vcardPhone, setVcardPhone] = useState('');
   const [vcardEmail, setVcardEmail] = useState('');
@@ -41,51 +228,28 @@ export function QRCodeGenerator({ onClose }: QRCodeGeneratorProps) {
 
   const generateQRCode = async () => {
     let dataToEncode = qrData;
-
-    // Format data based on type
     switch (qrType) {
-      case 'email':
-        dataToEncode = `mailto:${qrData}`;
-        break;
-      case 'phone':
-        dataToEncode = `tel:${qrData}`;
-        break;
-      case 'sms':
-        dataToEncode = `sms:${qrData}`;
-        break;
-      case 'wifi':
-        dataToEncode = `WIFI:T:${wifiEncryption};S:${wifiSSID};P:${wifiPassword};H:${wifiHidden ? 'true' : 'false'};;`;
-        break;
-      case 'vcard':
-        dataToEncode = `BEGIN:VCARD\nVERSION:3.0\nFN:${vcardName}\nTEL:${vcardPhone}\nEMAIL:${vcardEmail}\nORG:${vcardOrg}\nURL:${vcardUrl}\nEND:VCARD`;
-        break;
+      case 'email': dataToEncode = `mailto:${qrData}`; break;
+      case 'phone': dataToEncode = `tel:${qrData}`; break;
+      case 'sms': dataToEncode = `sms:${qrData}`; break;
+      case 'wifi': dataToEncode = `WIFI:T:${wifiEncryption};S:${wifiSSID};P:${wifiPassword};H:${wifiHidden ? 'true' : 'false'};;`; break;
+      case 'vcard': dataToEncode = `BEGIN:VCARD\nVERSION:3.0\nFN:${vcardName}\nTEL:${vcardPhone}\nEMAIL:${vcardEmail}\nORG:${vcardOrg}\nURL:${vcardUrl}\nEND:VCARD`; break;
     }
-
     if (!dataToEncode && qrType !== 'wifi' && qrType !== 'vcard') return;
-
     try {
       const canvas = canvasRef.current;
       if (!canvas) return;
-
       await QRCode.toCanvas(canvas, dataToEncode, {
         errorCorrectionLevel: errorLevel,
         width: size,
         margin: includeMargin ? margin : 0,
-        color: {
-          dark: darkColor,
-          light: lightColor,
-        },
+        color: { dark: darkColor, light: lightColor },
       });
-
-      // Also generate data URL for download
       const dataUrl = await QRCode.toDataURL(dataToEncode, {
         errorCorrectionLevel: errorLevel,
         width: size,
         margin: includeMargin ? margin : 0,
-        color: {
-          dark: darkColor,
-          light: lightColor,
-        },
+        color: { dark: darkColor, light: lightColor },
       });
       setQRDataURL(dataUrl);
     } catch (err) {
@@ -95,9 +259,9 @@ export function QRCodeGenerator({ onClose }: QRCodeGeneratorProps) {
 
   useEffect(() => {
     generateQRCode();
-  }, [qrData, qrType, errorLevel, size, darkColor, lightColor, margin, includeMargin, 
-      wifiSSID, wifiPassword, wifiEncryption, wifiHidden,
-      vcardName, vcardPhone, vcardEmail, vcardOrg, vcardUrl]);
+  }, [qrData, qrType, errorLevel, size, darkColor, lightColor, margin, includeMargin,
+    wifiSSID, wifiPassword, wifiEncryption, wifiHidden,
+    vcardName, vcardPhone, vcardEmail, vcardOrg, vcardUrl]);
 
   const downloadQRCode = () => {
     if (!qrDataURL) return;
@@ -112,9 +276,7 @@ export function QRCodeGenerator({ onClose }: QRCodeGeneratorProps) {
     try {
       const response = await fetch(qrDataURL);
       const blob = await response.blob();
-      await navigator.clipboard.write([
-        new ClipboardItem({ 'image/png': blob })
-      ]);
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -122,148 +284,83 @@ export function QRCodeGenerator({ onClose }: QRCodeGeneratorProps) {
     }
   };
 
+  const QR_TYPES = [
+    { value: 'url', label: 'URL', icon: '🔗' },
+    { value: 'text', label: 'Text', icon: '📝' },
+    { value: 'email', label: 'Email', icon: '📧' },
+    { value: 'phone', label: 'Phone', icon: '📞' },
+    { value: 'sms', label: 'SMS', icon: '💬' },
+    { value: 'wifi', label: 'WiFi', icon: '📶' },
+    { value: 'vcard', label: 'vCard', icon: '👤' },
+  ];
+
   const renderInputFields = () => {
     switch (qrType) {
       case 'wifi':
         return (
-          <div className="space-y-3.5">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-2">
-                Network Name (SSID)
-              </label>
-              <input
-                type="text"
-                value={wifiSSID}
-                onChange={(e) => setWifiSSID(e.target.value)}
-                placeholder="MyNetwork"
-                className="w-full px-3 py-2.5 bg-[#0f141b] border border-[#283341] rounded text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/50"
-              />
+              <FieldLabel>Network Name (SSID)</FieldLabel>
+              <BrandInput type="text" value={wifiSSID} onChange={e => setWifiSSID(e.target.value)} placeholder="MyNetwork" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-2">
-                Password
-              </label>
-              <input
-                type="text"
-                value={wifiPassword}
-                onChange={(e) => setWifiPassword(e.target.value)}
-                placeholder="password123"
-                className="w-full px-3 py-2.5 bg-[#0f141b] border border-[#283341] rounded text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/50"
-              />
+              <FieldLabel>Password</FieldLabel>
+              <BrandInput type="text" value={wifiPassword} onChange={e => setWifiPassword(e.target.value)} placeholder="password123" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-2">
-                Encryption
-              </label>
-              <select
+              <FieldLabel>Encryption</FieldLabel>
+              <BrandSelect
                 value={wifiEncryption}
-                onChange={(e) => setWifiEncryption(e.target.value as any)}
-                className="w-full px-3 py-2.5 bg-[#0f141b] border border-[#283341] rounded text-white text-sm focus:outline-none focus:border-cyan-500/50"
-              >
-                <option value="WPA">WPA/WPA2</option>
-                <option value="WEP">WEP</option>
-                <option value="nopass">No Password</option>
-              </select>
-            </div>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={wifiHidden}
-                onChange={(e) => setWifiHidden(e.target.checked)}
-                className="w-4 h-4 rounded bg-[#0f141b] border-[#283341]"
+                onChange={v => setWifiEncryption(v as any)}
+                options={[{ value: 'WPA', label: 'WPA/WPA2' }, { value: 'WEP', label: 'WEP' }, { value: 'nopass', label: 'No Password' }]}
               />
-              <span className="text-xs text-slate-300">Hidden Network</span>
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+              <input type="checkbox" checked={wifiHidden} onChange={e => setWifiHidden(e.target.checked)}
+                style={{ accentColor: '#00ff88', width: 16, height: 16, cursor: 'pointer' }} />
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)' }}>Hidden Network</span>
             </label>
           </div>
         );
-      
+
       case 'vcard':
         return (
-          <div className="space-y-3.5">
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-2">
-                Full Name
-              </label>
-              <input
-                type="text"
-                value={vcardName}
-                onChange={(e) => setVcardName(e.target.value)}
-                placeholder="John Doe"
-                className="w-full px-3 py-2.5 bg-[#0f141b] border border-[#283341] rounded text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-purple-500/50"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-2">
-                Phone
-              </label>
-              <input
-                type="tel"
-                value={vcardPhone}
-                onChange={(e) => setVcardPhone(e.target.value)}
-                placeholder="+1234567890"
-                className="w-full px-3 py-2.5 bg-[#0f141b] border border-[#283341] rounded text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-purple-500/50"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-2">
-                Email
-              </label>
-              <input
-                type="email"
-                value={vcardEmail}
-                onChange={(e) => setVcardEmail(e.target.value)}
-                placeholder="john@example.com"
-                className="w-full px-3 py-2.5 bg-[#0f141b] border border-[#283341] rounded text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-purple-500/50"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-2">
-                Organization
-              </label>
-              <input
-                type="text"
-                value={vcardOrg}
-                onChange={(e) => setVcardOrg(e.target.value)}
-                placeholder="Company Inc."
-                className="w-full px-3 py-2.5 bg-[#0f141b] border border-[#283341] rounded text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-purple-500/50"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-2">
-                Website
-              </label>
-              <input
-                type="url"
-                value={vcardUrl}
-                onChange={(e) => setVcardUrl(e.target.value)}
-                placeholder="https://example.com"
-                className="w-full px-3 py-2.5 bg-[#0f141b] border border-[#283341] rounded text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-purple-500/50"
-              />
-            </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {[
+              { label: 'Full Name', value: vcardName, onChange: setVcardName, placeholder: 'John Doe', type: 'text' },
+              { label: 'Phone', value: vcardPhone, onChange: setVcardPhone, placeholder: '+1234567890', type: 'tel' },
+              { label: 'Email', value: vcardEmail, onChange: setVcardEmail, placeholder: 'john@example.com', type: 'email' },
+              { label: 'Organization', value: vcardOrg, onChange: setVcardOrg, placeholder: 'Company Inc.', type: 'text' },
+              { label: 'Website', value: vcardUrl, onChange: setVcardUrl, placeholder: 'https://example.com', type: 'url' },
+            ].map(f => (
+              <div key={f.label}>
+                <FieldLabel>{f.label}</FieldLabel>
+                <BrandInput type={f.type} value={f.value} onChange={e => f.onChange(e.target.value)} placeholder={f.placeholder} />
+              </div>
+            ))}
           </div>
         );
 
       default:
         return (
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-2">
-              {qrType === 'url' ? 'URL' : 
-               qrType === 'email' ? 'Email Address' :
-               qrType === 'phone' ? 'Phone Number' :
-               qrType === 'sms' ? 'Phone Number' : 'Text Content'}
-            </label>
-            <textarea
+            <FieldLabel>
+              {qrType === 'url' ? 'URL' :
+                qrType === 'email' ? 'Email Address' :
+                qrType === 'phone' ? 'Phone Number' :
+                qrType === 'sms' ? 'Phone Number' : 'Text Content'}
+            </FieldLabel>
+            <BrandTextarea
               value={qrData}
-              onChange={(e) => setQRData(e.target.value)}
+              onChange={e => setQRData(e.target.value)}
               placeholder={
                 qrType === 'url' ? 'https://example.com' :
                 qrType === 'email' ? 'email@example.com' :
                 qrType === 'phone' ? '+1234567890' :
                 qrType === 'sms' ? '+1234567890' :
-                'Enter your text here...'
+                'Enter your text here…'
               }
               rows={3}
-              className="w-full px-3 py-2.5 bg-[#0f141b] border border-[#283341] rounded text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/50 resize-none"
             />
           </div>
         );
@@ -271,256 +368,342 @@ export function QRCodeGenerator({ onClose }: QRCodeGeneratorProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0e27] text-white">
+    <div style={{
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      fontFamily: "'Space Grotesk', 'Inter', sans-serif",
+      color: '#fff',
+      background: 'transparent',
+      overflow: 'hidden',
+    }}>
       {/* Header */}
-      <header className="border-b border-[#1a1f3a]">
-        <div className="max-w-[1400px] mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                <span className="text-2xl">📱</span>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-white">
-                  QR Code Generator
-                </h1>
-                <p className="text-xs text-slate-400">Create custom QR codes instantly</p>
-              </div>
-            </div>
-            {onClose && (
-              <button
-                onClick={onClose}
-                className="px-4 py-2 rounded bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/40 transition-colors text-sm font-medium"
-              >
-                Close
-              </button>
-            )}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '16px 20px',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        background: 'linear-gradient(135deg, rgba(0,255,136,0.05) 0%, rgba(0,100,255,0.03) 100%)',
+        flexShrink: 0,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10,
+            background: 'linear-gradient(135deg, rgba(0,255,136,0.2) 0%, rgba(0,150,255,0.2) 100%)',
+            border: '1px solid rgba(0,255,136,0.2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 18,
+          }}>
+            📱
+          </div>
+          <div>
+            <h1 style={{ fontSize: 15, fontWeight: 700, color: '#fff', lineHeight: 1.2, margin: 0 }}>
+              QR Code Generator
+            </h1>
+            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', margin: 0, marginTop: 2 }}>
+              Create custom QR codes instantly
+            </p>
           </div>
         </div>
-      </header>
+        {onClose && (
+          <button
+            onClick={onClose}
+            style={{
+              width: 30, height: 30, borderRadius: '50%',
+              background: 'transparent',
+              border: 'none',
+              color: 'rgba(255,255,255,0.4)',
+              fontSize: 18, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'color 0.15s, background 0.15s',
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLButtonElement).style.color = '#fff';
+              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.4)';
+              (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+            }}
+          >
+            ✕
+          </button>
+        )}
+      </div>
 
-      {/* Main Content */}
-      <main className="max-w-[1400px] mx-auto px-6 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_500px] gap-6">
-          {/* Left Column - Settings */}
-          <div className="space-y-4">
-            {/* QR Type Selector */}
-            <section className="bg-[#1a1f3a] rounded-lg border border-[#283341] p-5">
-              <h2 className="text-base font-bold text-purple-400 mb-3">QR Code Type</h2>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { value: 'url', label: 'URL', icon: '🔗' },
-                  { value: 'text', label: 'Text', icon: '📝' },
-                  { value: 'email', label: 'Email', icon: '📧' },
-                  { value: 'phone', label: 'Phone', icon: '📞' },
-                  { value: 'sms', label: 'SMS', icon: '💬' },
-                  { value: 'wifi', label: 'WiFi', icon: '📶' },
-                  { value: 'vcard', label: 'vCard', icon: '👤' },
-                ].map((type) => (
-                  <button
-                    key={type.value}
-                    onClick={() => setQRType(type.value as QRType)}
-                    className={`
-                      px-3 py-2.5 rounded text-sm font-medium transition-colors flex items-center gap-2 justify-center border
-                      ${qrType === type.value
-                        ? 'bg-purple-500/20 text-purple-300 border-purple-500/50'
-                        : 'bg-[#0f141b] text-slate-400 hover:text-slate-200 hover:bg-[#141a24] border-[#283341]'
-                      }
-                    `}
-                  >
-                    <span className="text-base">{type.icon}</span>
-                    <span>{type.label}</span>
-                  </button>
-                ))}
+      {/* Scrollable body */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 280px',
+          gap: 12,
+          alignItems: 'start',
+        }}>
+          {/* LEFT: Settings */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+            {/* QR Type */}
+            <Card>
+              <SectionTitle>QR Code Type</SectionTitle>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
+                {QR_TYPES.map(type => {
+                  const active = qrType === type.value;
+                  return (
+                    <button
+                      key={type.value}
+                      onClick={() => setQRType(type.value as QRType)}
+                      style={{
+                        padding: '9px 12px',
+                        borderRadius: 10,
+                        fontSize: 13,
+                        fontWeight: 500,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s',
+                        border: active ? '1px solid rgba(0,255,136,0.4)' : '1px solid rgba(255,255,255,0.07)',
+                        background: active ? 'rgba(0,255,136,0.1)' : 'rgba(255,255,255,0.03)',
+                        color: active ? '#00ff88' : 'rgba(255,255,255,0.55)',
+                        boxShadow: active ? '0 0 12px rgba(0,255,136,0.08)' : 'none',
+                      }}
+                      onMouseEnter={e => {
+                        if (!active) {
+                          (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)';
+                          (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.8)';
+                        }
+                      }}
+                      onMouseLeave={e => {
+                        if (!active) {
+                          (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.03)';
+                          (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.55)';
+                        }
+                      }}
+                    >
+                      <span style={{ fontSize: 15 }}>{type.icon}</span>
+                      <span>{type.label}</span>
+                    </button>
+                  );
+                })}
               </div>
-            </section>
+            </Card>
 
-            {/* Input Fields */}
-            <section className="bg-[#1a1f3a] rounded-lg border border-[#283341] p-5">
-              <h2 className="text-base font-bold text-cyan-400 mb-3">Content</h2>
+            {/* Content */}
+            <Card>
+              <SectionTitle>Content</SectionTitle>
               {renderInputFields()}
-            </section>
+            </Card>
 
             {/* Customization */}
-            <section className="bg-[#1a1f3a] rounded-lg border border-[#283341] p-5">
-              <h2 className="text-base font-bold text-pink-400 mb-3">Customization</h2>
-              
-              <div className="space-y-3.5">
-                {/* Size */}
+            <Card>
+              <SectionTitle>Customization</SectionTitle>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+                {/* Size slider */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Size: {size}px
-                  </label>
+                  <FieldLabel>
+                    Size — <span style={{ color: '#00ff88', fontWeight: 600 }}>{size}px</span>
+                  </FieldLabel>
                   <input
-                    type="range"
-                    min="200"
-                    max="600"
-                    value={size}
-                    onChange={(e) => setSize(Number(e.target.value))}
-                    className="w-full"
+                    type="range" min="200" max="600" value={size}
+                    onChange={e => setSize(Number(e.target.value))}
+                    style={{ width: '100%', accentColor: '#00ff88' }}
                   />
                 </div>
 
                 {/* Error Correction */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Error Correction
-                  </label>
-                  <select
+                  <FieldLabel>Error Correction</FieldLabel>
+                  <BrandSelect
                     value={errorLevel}
-                    onChange={(e) => setErrorLevel(e.target.value as ErrorCorrectionLevel)}
-                    className="w-full px-4 py-3 bg-slate-800/50 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-pink-500/50"
-                  >
-                    <option value="L">Low (7%)</option>
-                    <option value="M">Medium (15%)</option>
-                    <option value="Q">Quartile (25%)</option>
-                    <option value="H">High (30%)</option>
-                  </select>
+                    onChange={v => setErrorLevel(v as ErrorCorrectionLevel)}
+                    options={[
+                      { value: 'L', label: 'Low (7%)' },
+                      { value: 'M', label: 'Medium (15%)' },
+                      { value: 'Q', label: 'Quartile (25%)' },
+                      { value: 'H', label: 'High (30%)' },
+                    ]}
+                  />
                 </div>
 
                 {/* Colors */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">
-                      Foreground
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="color"
-                        value={darkColor}
-                        onChange={(e) => setDarkColor(e.target.value)}
-                        className="w-12 h-12 rounded-lg cursor-pointer"
-                      />
-                      <input
-                        type="text"
-                        value={darkColor}
-                        onChange={(e) => setDarkColor(e.target.value)}
-                        className="flex-1 px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-pink-500/50"
-                      />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  {[
+                    { label: 'Foreground', color: darkColor, setColor: setDarkColor },
+                    { label: 'Background', color: lightColor, setColor: setLightColor },
+                  ].map(({ label, color, setColor }) => (
+                    <div key={label}>
+                      <FieldLabel>{label}</FieldLabel>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input
+                          type="color" value={color}
+                          onChange={e => setColor(e.target.value)}
+                          style={{
+                            width: 40, height: 40, borderRadius: 8, cursor: 'pointer',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            background: 'none', padding: 2,
+                          }}
+                        />
+                        <BrandInput
+                          type="text" value={color}
+                          onChange={e => setColor(e.target.value)}
+                          style={{ flex: 1, fontFamily: 'monospace', fontSize: 12 }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">
-                      Background
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="color"
-                        value={lightColor}
-                        onChange={(e) => setLightColor(e.target.value)}
-                        className="w-12 h-12 rounded-lg cursor-pointer"
-                      />
-                      <input
-                        type="text"
-                        value={lightColor}
-                        onChange={(e) => setLightColor(e.target.value)}
-                        className="flex-1 px-3 py-2 bg-slate-800/50 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-pink-500/50"
-                      />
-                    </div>
-                  </div>
+                  ))}
                 </div>
 
                 {/* Margin */}
                 <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium text-slate-300">
-                      Margin: {margin}
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <FieldLabel>
+                      Margin — <span style={{ color: includeMargin ? '#00ff88' : 'rgba(255,255,255,0.3)', fontWeight: 600 }}>{margin}</span>
+                    </FieldLabel>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
                       <input
-                        type="checkbox"
-                        checked={includeMargin}
-                        onChange={(e) => setIncludeMargin(e.target.checked)}
-                        className="w-4 h-4 rounded bg-slate-800 border-white/10"
+                        type="checkbox" checked={includeMargin}
+                        onChange={e => setIncludeMargin(e.target.checked)}
+                        style={{ accentColor: '#00ff88', width: 14, height: 14, cursor: 'pointer' }}
                       />
-                      <span className="text-xs text-slate-400">Include margin</span>
+                      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>Include</span>
                     </label>
                   </div>
                   <input
-                    type="range"
-                    min="0"
-                    max="10"
-                    value={margin}
-                    onChange={(e) => setMargin(Number(e.target.value))}
+                    type="range" min="0" max="10" value={margin}
+                    onChange={e => setMargin(Number(e.target.value))}
                     disabled={!includeMargin}
-                    className="w-full disabled:opacity-30"
+                    style={{ width: '100%', accentColor: '#00ff88', opacity: includeMargin ? 1 : 0.3 }}
                   />
                 </div>
               </div>
-            </section>
+            </Card>
           </div>
 
-          {/* Right Column - Preview & Actions */}
-          <div className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-            {/* QR Code Preview */}
-            <section className="bg-[#1a1f3a] rounded-lg border border-[#283341] p-5">
-              <h2 className="text-base font-bold text-emerald-400 mb-3">Preview</h2>
-              <div className="flex items-center justify-center p-6 bg-[#0f141b] rounded-lg border-2 border-dashed border-[#283341]">
+          {/* RIGHT: Preview + Actions */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, position: 'sticky', top: 0 }}>
+
+            {/* Preview */}
+            <Card>
+              <SectionTitle>Preview</SectionTitle>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 20,
+                background: 'rgba(0,0,0,0.3)',
+                borderRadius: 12,
+                border: '1px dashed rgba(255,255,255,0.1)',
+                minHeight: 200,
+              }}>
                 <canvas
                   ref={canvasRef}
-                  className="max-w-full h-auto"
-                  style={{ imageRendering: 'pixelated' }}
+                  style={{ maxWidth: '100%', height: 'auto', borderRadius: 8 }}
                 />
               </div>
-            </section>
+            </Card>
 
             {/* Actions */}
-            <section className="bg-[#1a1f3a] rounded-lg border border-[#283341] p-5">
-              <h2 className="text-base font-bold text-amber-400 mb-3">Actions</h2>
-              <div className="flex gap-2">
+            <Card>
+              <SectionTitle>Actions</SectionTitle>
+              <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   onClick={downloadQRCode}
                   disabled={!qrDataURL}
-                  className="flex-1 px-4 py-2.5 bg-emerald-500/90 hover:bg-emerald-500 text-white font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-500/90 flex items-center justify-center gap-2 text-sm"
+                  style={{
+                    flex: 1,
+                    padding: '10px 0',
+                    borderRadius: 10,
+                    border: 'none',
+                    background: qrDataURL
+                      ? 'linear-gradient(135deg, #00ff88 0%, #00c4ff 100%)'
+                      : 'rgba(255,255,255,0.06)',
+                    color: qrDataURL ? '#000' : 'rgba(255,255,255,0.25)',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: qrDataURL ? 'pointer' : 'not-allowed',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    transition: 'opacity 0.15s',
+                    boxShadow: qrDataURL ? '0 4px 20px rgba(0,255,136,0.2)' : 'none',
+                  }}
                 >
-                  <span>⬇</span>
-                  Download
+                  ⬇ Download
                 </button>
                 <button
                   onClick={copyToClipboard}
                   disabled={!qrDataURL}
-                  className={`
-                    flex-1 px-4 py-2.5 font-medium rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm
-                    ${copied 
-                      ? 'bg-green-500/90 hover:bg-green-500' 
-                      : 'bg-purple-500/90 hover:bg-purple-500'
-                    } text-white
-                  `}
+                  style={{
+                    flex: 1,
+                    padding: '10px 0',
+                    borderRadius: 10,
+                    border: copied ? '1px solid rgba(0,255,136,0.4)' : '1px solid rgba(255,255,255,0.1)',
+                    background: copied ? 'rgba(0,255,136,0.1)' : 'rgba(255,255,255,0.05)',
+                    color: copied ? '#00ff88' : 'rgba(255,255,255,0.7)',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: qrDataURL ? 'pointer' : 'not-allowed',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    transition: 'all 0.15s',
+                    opacity: qrDataURL ? 1 : 0.4,
+                  }}
                 >
-                  <span>{copied ? '✓' : '📋'}</span>
-                  {copied ? 'Copied!' : 'Copy'}
+                  {copied ? '✓ Copied' : '📋 Copy'}
                 </button>
               </div>
-            </section>
+            </Card>
 
-            {/* Info */}
-            <section className="bg-[#1a1f3a] rounded-lg border border-[#283341] p-5">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center flex-shrink-0">
-                  <span className="text-lg">💡</span>
+            {/* Tips */}
+            <Card>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                  background: 'rgba(0,255,136,0.08)',
+                  border: '1px solid rgba(0,255,136,0.15)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 16,
+                }}>
+                  💡
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-blue-400 mb-2">Tips</h3>
-                  <ul className="space-y-1.5 text-xs text-slate-300">
-                    <li className="flex items-start gap-1.5">
-                      <span className="text-cyan-400 mt-0.5">▸</span>
-                      <span>Higher error correction allows damaged codes to still scan</span>
-                    </li>
-                    <li className="flex items-start gap-1.5">
-                      <span className="text-cyan-400 mt-0.5">▸</span>
-                      <span>Use high contrast colors for better scanning reliability</span>
-                    </li>
-                    <li className="flex items-start gap-1.5">
-                      <span className="text-cyan-400 mt-0.5">▸</span>
-                      <span>Test your QR code with multiple devices before printing</span>
-                    </li>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.6)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Tips
+                  </p>
+                  <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 7 }}>
+                    {[
+                      'Higher error correction allows damaged codes to still scan',
+                      'Use high contrast colors for better scanning reliability',
+                      'Test your QR code with multiple devices before printing',
+                    ].map(tip => (
+                      <li key={tip} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+                        <span style={{ color: '#00ff88', marginTop: 1, flexShrink: 0 }}>▸</span>
+                        <span>{tip}</span>
+                      </li>
+                    ))}
                   </ul>
                 </div>
               </div>
-            </section>
+            </Card>
           </div>
         </div>
-      </main>
+      </div>
+
+      <style>{`
+        @keyframes qrDropIn {
+          from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          * { animation: none !important; transition: none !important; }
+        }
+      `}</style>
     </div>
   );
 }
