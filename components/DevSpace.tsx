@@ -98,6 +98,18 @@ const tools: Tool[] = [
       'Import/export bookmarks'
     ]
   },
+  {
+    icon: '🐝',
+    title: 'Agent Swarm',
+    desc: 'Orchestrate multiple AI agents on a single task',
+    action: 'agent-swarm',
+    uses: [
+      'Spawn parallel AI agents',
+      'Monitor agent progress live',
+      'Human-in-the-loop approvals',
+      'Inspect per-agent logs'
+    ]
+  },
 
 ];
 
