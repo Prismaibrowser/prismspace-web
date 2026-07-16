@@ -110,6 +110,8 @@ import {
   isTerminal,
 } from '@/lib/agent-swarm-client';
 import { AgentCard } from './AgentCard';
+import { getAgentAvatarStyle } from '@/lib/agent-avatar';
+import GridLoader from '@/components/ui/smoothui/grid-loader';
 
 interface AgentSwarmProps {
   onClose: () => void;
@@ -494,6 +496,64 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                         </span>
                       )}
                     </div>
+
+                    {/* ── Sub-agent avatar row ─────────────────────────── */}
+                    {(() => {
+                      const subAgents = Array.from(
+                        { length: selectedAgent.max_agents },
+                        (_, i) => `Agent-${String.fromCharCode(65 + i)}`,
+                      );
+                      // Determine which sub-agent spoke most recently in the logs
+                      const lastLine = logLines[logLines.length - 1] ?? '';
+                      const activeAgent = subAgents.find(name => lastLine.includes(name));
+
+                      return (
+                        <div className="flex items-center gap-2 mt-3">
+                          {subAgents.map(name => {
+                            const isActive = name === activeAgent;
+                            return (
+                              <div
+                                key={name}
+                                title={name}
+                                style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    ...getAgentAvatarStyle(name, 44),
+                                    border: isActive
+                                      ? '2px solid #00ff88'
+                                      : '2px solid rgba(255,255,255,0.08)',
+                                    boxShadow: isActive
+                                      ? '0 0 10px rgba(0,255,136,0.4)'
+                                      : 'none',
+                                    transition: 'border-color 0.3s, box-shadow 0.3s',
+                                    opacity: isActive ? 1 : 0.5,
+                                    overflow: 'hidden',
+                                    backgroundSize: `${13 * 100}% ${7 * 100}%`,
+                                  }}
+                                />
+                                <span
+                                  style={{
+                                    fontSize: 9,
+                                    fontFamily: 'monospace',
+                                    color: isActive ? '#00ff88' : 'rgba(255,255,255,0.3)',
+                                    fontWeight: isActive ? 700 : 400,
+                                    transition: 'color 0.3s',
+                                  }}
+                                >
+                                  {name}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* HITL controls in detail pane */}
@@ -565,12 +625,44 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                     );
                   })}
 
-                  {/* Blinking cursor while running */}
+                  {/* Active state: GridLoader + status */}
                   {!isTerminal(selectedAgent.status) && (
-                    <span
-                      className="inline-block w-1.5 h-3.5 bg-green-400 ml-0.5"
-                      style={{ animation: 'blink 1s step-end infinite', verticalAlign: 'middle' }}
-                    />
+                    <div
+                      className="flex items-center gap-3 mt-3 pt-3"
+                      style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
+                    >
+                      <GridLoader
+                        color="#00ff88"
+                        mode={selectedAgent.status === 'planning' ? 'sequence' : 'stagger'}
+                        sequence={[
+                          'spiral-cw',
+                          'plus-full',
+                          'frame',
+                          'x-shape',
+                          'spiral-ccw',
+                        ]}
+                        pattern="plus-hollow"
+                        size="sm"
+                        gap={3}
+                        rounded
+                        speed="fast"
+                      />
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontFamily: 'monospace',
+                          color: '#00ff88',
+                          opacity: 0.8,
+                          animation: 'blink 2s ease-in-out infinite',
+                        }}
+                      >
+                        {selectedAgent.status === 'planning' && 'Compiling execution plan…'}
+                        {selectedAgent.status === 'running' && 'Agents processing…'}
+                        {selectedAgent.status === 'initialising' && 'Initialising runtime…'}
+                        {selectedAgent.status === 'awaiting_approval' && 'Awaiting your approval…'}
+                        {!['planning','running','initialising','awaiting_approval'].includes(selectedAgent.status) && 'Working…'}
+                      </span>
+                    </div>
                   )}
                   <div ref={logsEndRef} />
                 </div>
