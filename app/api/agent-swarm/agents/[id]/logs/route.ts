@@ -8,6 +8,8 @@ import { NextRequest } from 'next/server';
 
 const SWARM_URL = process.env.HIVE_API_URL ?? 'http://localhost:7433';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },

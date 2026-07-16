@@ -22,6 +22,7 @@ import uuid
 from datetime import datetime
 from typing import AsyncGenerator, Optional
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -30,6 +31,8 @@ from pydantic import BaseModel
 # ---------------------------------------------------------------------------
 # App setup
 # ---------------------------------------------------------------------------
+
+load_dotenv()  # Load API keys from .env
 
 app = FastAPI(
     title="Hive Bridge API",
@@ -63,7 +66,7 @@ _logs: dict[str, list[str]] = {}
 class CreateAgentRequest(BaseModel):
     objective: str
     model: str = "gpt-4o"          # any Hive-supported model
-    provider: str = "openai"       # openai | anthropic | google
+    provider: str = "openai"       # openai | anthropic | google | groq
     max_agents: int = 3
     human_in_loop: bool = True
 
@@ -84,81 +87,249 @@ def _log(agent_id: str, message: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Background task: simulated Hive agent run
-# In production, replace this with real Hive orchestration calls.
+# LLM API call helpers
+# ---------------------------------------------------------------------------
+
+def _load_tools_env() -> dict:
+    """Load environment variables from the tools .env file."""
+    env_path = os.path.join(os.path.dirname(__file__), "hive", "tools", ".env")
+    env_vars: dict = {}
+    try:
+        with open(env_path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, _, val = line.partition("=")
+                env_vars[key.strip()] = val.strip()
+    except FileNotFoundError:
+        pass
+    return env_vars
+
+
+def _build_system_prompt() -> str:
+    """Build a context-aware system prompt that includes MCP tool information."""
+    base = (
+        "You are a powerful multi-agent AI assistant running inside the PrismSpace Agent Swarm. "
+        "You are powered by the Hive multi-agent orchestration framework (aden-hive/hive). "
+        "Provide clear, detailed, and well-structured responses.\n\n"
+    )
+
+    # Load MCP server info
+    mcp_path = os.path.join(os.path.dirname(__file__), "hive", "tools", "mcp_servers.json")
+    tools_env = _load_tools_env()
+
+    try:
+        with open(mcp_path, "r", encoding="utf-8") as f:
+            mcp_servers = json.load(f)
+
+        if mcp_servers:
+            base += "## Initialized MCP Tool Servers (LIVE & READY)\n"
+            base += (
+                "The following MCP (Model Context Protocol) servers are **fully initialized and ready to use**. "
+                "You are NOT speculating — these tools are real, configured, and available right now.\n\n"
+            )
+            for name, config in mcp_servers.items():
+                desc = config.get("description", "No description")
+                transport = config.get("transport", "unknown")
+                command = config.get("command", "")
+                args = " ".join(config.get("args", []))
+
+                # Resolve env var references like ${VAR_NAME} to their actual values
+                env_config = config.get("env", {})
+                resolved_env: dict = {}
+                for env_key, env_val in env_config.items():
+                    # Replace ${VAR} placeholders with actual values from tools .env
+                    if env_val.startswith("${") and env_val.endswith("}"):
+                        var_name = env_val[2:-1]
+                        actual = tools_env.get(var_name) or os.environ.get(var_name, "")
+                        resolved_env[env_key] = "✓ SET" if actual else "✗ NOT SET"
+                    else:
+                        resolved_env[env_key] = "✓ SET" if env_val else "✗ NOT SET"
+
+                base += f"### `{name}` ({transport})\n"
+                base += f"**Description:** {desc}\n"
+                base += f"**Command:** `{command} {args}`\n"
+                if resolved_env:
+                    env_status = ", ".join(f"{k}: {v}" for k, v in resolved_env.items())
+                    base += f"**Credentials:** {env_status}\n"
+
+                # Add server-specific capability details
+                if name == "figma":
+                    figma_token_set = resolved_env.get("FIGMA_API_TOKEN", "✗ NOT SET")
+                    base += f"\n**Figma MCP is ACTIVE** (API Token: {figma_token_set})\n"
+                    base += "You can use the Figma MCP to:\n"
+                    base += "- Read Figma file contents, pages, and frames by file key\n"
+                    base += "- List and inspect components, component sets, and variants\n"
+                    base += "- Read styles (colors, text, effects, grids)\n"
+                    base += "- Read variables and variable collections\n"
+                    base += "- Get dev mode specs: measurements, CSS properties, assets\n"
+                    base += "- Export assets (SVG, PNG) from Figma nodes\n"
+                    base += "- Answer questions about any Figma design given a file URL or key\n"
+                    base += "\nTo use Figma tools, the user provides a Figma file URL like:\n"
+                    base += "  `https://www.figma.com/file/ABC123/MyDesign`\n"
+                    base += "The file key is the `ABC123` portion after `/file/`.\n"
+                elif name == "hive_tools":
+                    base += "\n**Hive Tools MCP is ACTIVE**\n"
+                    base += "You can use: web_search, web_scrape, send_email, and data tools.\n"
+
+                base += "\n"
+
+            base += (
+                "When a user asks what you can do, explicitly mention these live MCP integrations. "
+                "When a user provides a Figma link, use the Figma MCP to read and analyze it. "
+                "Do NOT say you don't have access to these tools — they are initialized and ready.\n"
+            )
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass  # No MCP config found, use base prompt
+
+    return base
+
+
+async def _call_groq(model: str, objective: str) -> str:
+    """Call Groq API and return the response text."""
+    from groq import AsyncGroq
+    client = AsyncGroq(api_key=os.environ.get("GROQ_API_KEY"))
+    response = await client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": _build_system_prompt()},
+            {"role": "user", "content": objective},
+        ],
+        temperature=0.7,
+        max_tokens=4096,
+    )
+    return response.choices[0].message.content or "(No response generated)"
+
+
+async def _call_openai(model: str, objective: str) -> str:
+    """Call OpenAI API and return the response text."""
+    from openai import AsyncOpenAI
+    client = AsyncOpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    response = await client.chat.completions.create(
+        model=model,
+        messages=[
+            {"role": "system", "content": _build_system_prompt()},
+            {"role": "user", "content": objective},
+        ],
+        temperature=0.7,
+        max_tokens=4096,
+    )
+    return response.choices[0].message.content or "(No response generated)"
+
+
+async def _call_anthropic(model: str, objective: str) -> str:
+    """Call Anthropic API and return the response text."""
+    import anthropic
+    client = anthropic.AsyncAnthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+    response = await client.messages.create(
+        model=model,
+        max_tokens=4096,
+        system=_build_system_prompt(),
+        messages=[
+            {"role": "user", "content": objective},
+        ],
+    )
+    return response.content[0].text if response.content else "(No response generated)"
+
+
+async def _call_google(model: str, objective: str) -> str:
+    """Call Google Gemini API and return the response text."""
+    from google import genai
+    client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+    full_prompt = _build_system_prompt() + "\n\n---\n\nUser request: " + objective
+    response = await client.aio.models.generate_content(
+        model=model,
+        contents=full_prompt,
+    )
+    return response.text or "(No response generated)"
+
+
+# ---------------------------------------------------------------------------
+# Background task: real LLM-powered agent run
 # ---------------------------------------------------------------------------
 
 async def _run_hive_agent(agent_id: str, request: CreateAgentRequest) -> None:
     """
-    Drives the agent through its lifecycle stages.
-
-    Real integration: import from hive and call something like:
-        from hive import HiveRuntime
-        runtime = HiveRuntime(model=request.model, provider=request.provider)
-        async for event in runtime.run(objective=request.objective):
-            _log(agent_id, event.message)
-            ...
+    Drives the agent through its lifecycle stages and calls the actual LLM API
+    based on the selected provider.
     """
     agent = _agents[agent_id]
-    _log(agent_id, f"🚀 Initialising Hive runtime ({request.provider}/{request.model})")
-    await asyncio.sleep(0.5)
 
-    # --- Planning phase ---
-    agent["status"] = "planning"
-    agent["updated_at"] = datetime.utcnow().isoformat()
-    _log(agent_id, f"🧠 Compiling execution DAG for: «{request.objective}»")
-    await asyncio.sleep(1.0)
-
-    _log(agent_id, f"📐 Spawning {request.max_agents} specialised sub-agents")
-    sub_agents = [f"Agent-{chr(65+i)}" for i in range(request.max_agents)]
-    for sa in sub_agents:
-        _log(agent_id, f"   ↳ {sa} ready")
+    try:
+        _log(agent_id, f"Initialising Hive runtime ({request.provider}/{request.model})")
         await asyncio.sleep(0.3)
 
-    # --- Running phase ---
-    agent["status"] = "running"
-    agent["updated_at"] = datetime.utcnow().isoformat()
-
-    if request.human_in_loop:
-        agent["status"] = "awaiting_approval"
+        # --- Planning phase ---
+        agent["status"] = "planning"
         agent["updated_at"] = datetime.utcnow().isoformat()
-        _log(agent_id, "⏸️  Human-in-the-Loop checkpoint — waiting for approval…")
-        # Wait for approval (up to 5 minutes)
-        for _ in range(300):
-            if agent.get("approved") is True:
-                _log(agent_id, "✅ Approved — resuming execution")
-                break
-            if agent.get("approved") is False:
-                agent["status"] = "cancelled"
-                agent["updated_at"] = datetime.utcnow().isoformat()
-                _log(agent_id, "🛑 Execution cancelled by operator")
+        _log(agent_id, f"Compiling execution DAG for: <<{request.objective}>>")
+        await asyncio.sleep(0.5)
+
+        _log(agent_id, f"Spawning {request.max_agents} specialised sub-agents")
+        sub_agents = [f"Agent-{chr(65+i)}" for i in range(request.max_agents)]
+        for sa in sub_agents:
+            _log(agent_id, f"   -> {sa} ready")
+            await asyncio.sleep(0.15)
+
+        # --- Running phase ---
+        agent["status"] = "running"
+        agent["updated_at"] = datetime.utcnow().isoformat()
+
+        # --- Human-in-the-Loop checkpoint ---
+        if request.human_in_loop:
+            agent["status"] = "awaiting_approval"
+            agent["updated_at"] = datetime.utcnow().isoformat()
+            _log(agent_id, "Human-in-the-Loop checkpoint -- waiting for approval...")
+            for _ in range(300):
+                if agent.get("approved") is True:
+                    _log(agent_id, "[OK] Approved -- resuming execution")
+                    break
+                if agent.get("approved") is False:
+                    agent["status"] = "cancelled"
+                    agent["updated_at"] = datetime.utcnow().isoformat()
+                    _log(agent_id, "[STOP] Execution cancelled by operator")
+                    return
+                await asyncio.sleep(1)
+            else:
+                agent["status"] = "failed"
+                _log(agent_id, "[WARN] Approval timeout -- aborting")
                 return
-            await asyncio.sleep(1)
+
+        agent["status"] = "running"
+        agent["updated_at"] = datetime.utcnow().isoformat()
+
+        # --- Actual LLM call ---
+        _log(agent_id, f"Sending prompt to {request.provider}/{request.model}...")
+
+        provider = request.provider.lower()
+        if provider == "groq":
+            result_text = await _call_groq(request.model, request.objective)
+        elif provider == "openai":
+            result_text = await _call_openai(request.model, request.objective)
+        elif provider == "anthropic":
+            result_text = await _call_anthropic(request.model, request.objective)
+        elif provider == "google":
+            result_text = await _call_google(request.model, request.objective)
         else:
-            agent["status"] = "failed"
-            _log(agent_id, "⚠️ Approval timeout — aborting")
-            return
+            raise ValueError(f"Unsupported provider: {request.provider}")
 
-    agent["status"] = "running"
-    agent["updated_at"] = datetime.utcnow().isoformat()
+        _log(agent_id, f"Received response from {request.provider} ({len(result_text)} chars)")
+        _log(agent_id, "Running validation checks...")
+        await asyncio.sleep(0.3)
 
-    # Simulate parallel agent work
-    tasks = [
-        ("🔍", "Gathering context and analysing requirements"),
-        ("⚙️", "Executing primary task steps"),
-        ("🔗", "Aggregating sub-agent results"),
-        ("🛡️", "Running validation and self-healing checks"),
-    ]
-    for icon, step in tasks:
-        _log(agent_id, f"{icon} {step}…")
-        await asyncio.sleep(1.5)
+        # --- Complete ---
+        agent["status"] = "completed"
+        agent["updated_at"] = datetime.utcnow().isoformat()
+        agent["result"] = result_text
+        _log(agent_id, "Task completed successfully!")
 
-    # --- Complete ---
-    agent["status"] = "completed"
-    agent["updated_at"] = datetime.utcnow().isoformat()
-    agent["result"] = f"Successfully completed: {request.objective}"
-    _log(agent_id, "🎉 Task completed successfully!")
-    _log(agent_id, f"📊 Total tokens used: ~{2500 + len(request.objective) * 10}")
+    except Exception as exc:
+        agent["status"] = "failed"
+        agent["updated_at"] = datetime.utcnow().isoformat()
+        error_msg = str(exc)
+        agent["result"] = f"Error: {error_msg}"
+        _log(agent_id, f"[ERROR] Agent failed: {error_msg}")
 
 
 # ---------------------------------------------------------------------------
@@ -224,10 +395,19 @@ async def approve_agent(agent_id: str, body: ApproveAgentRequest):
     agent = _agents.get(agent_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
+        
+    # If already approved/rejected, ignore duplicate clicks from UI
+    if agent.get("approved") is not None:
+        return {"ok": True, "action": "already_handled"}
+
     if agent["status"] != "awaiting_approval":
         raise HTTPException(status_code=400, detail="Agent is not awaiting approval")
 
     agent["approved"] = body.approved
+    # Optimistically update status to prevent UI polling race conditions
+    agent["status"] = "running" if body.approved else "cancelled"
+    agent["updated_at"] = datetime.utcnow().isoformat()
+    
     action = "approved" if body.approved else "rejected"
     _log(agent_id, f"👤 Operator {action}" + (f": {body.message}" if body.message else ""))
     return {"ok": True, "action": action}

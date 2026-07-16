@@ -7,7 +7,95 @@
  * Shows live agent status, log streaming, HITL controls, and a task launcher.
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useId } from 'react';
+
+// ── Custom dark-themed Select component ─────────────────────────────────────
+interface SelectOption { value: string; label: string; }
+interface StyledSelectProps {
+  value: string;
+  onChange: (val: string) => void;
+  options: SelectOption[];
+  className?: string;
+}
+
+function StyledSelect({ value, onChange, options, className = '' }: StyledSelectProps) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const uid = useId();
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const selected = options.find((o) => o.value === value);
+
+  return (
+    <div ref={ref} className={`relative ${className}`} style={{ userSelect: 'none' }}>
+      {/* Trigger */}
+      <button
+        type="button"
+        id={uid}
+        onClick={() => setOpen((p) => !p)}
+        className="w-full flex items-center justify-between gap-1.5 rounded-lg px-2.5 py-2 text-xs text-white outline-none transition-all"
+        style={{
+          background: 'rgba(255,255,255,0.07)',
+          border: open ? '1px solid rgba(0,255,136,0.45)' : '1px solid rgba(255,255,255,0.1)',
+          boxShadow: open ? '0 0 0 2px rgba(0,255,136,0.08)' : 'none',
+        }}
+      >
+        <span className="truncate">{selected?.label ?? value}</span>
+        <svg
+          width="10" height="10" viewBox="0 0 10 10" fill="none"
+          style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', flexShrink: 0 }}
+        >
+          <path d="M1 3l4 4 4-4" stroke="rgba(255,255,255,0.45)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+
+      {/* Dropdown panel */}
+      {open && (
+        <div
+          className="absolute z-50 w-full mt-1 rounded-xl overflow-hidden"
+          style={{
+            background: 'rgba(18,18,24,0.97)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,255,136,0.06)',
+            backdropFilter: 'blur(20px)',
+            animation: 'swarmDropIn 0.15s ease',
+          }}
+        >
+          {options.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+              className="w-full text-left px-3 py-2 text-xs transition-all"
+              style={{
+                color: opt.value === value ? '#00ff88' : 'rgba(255,255,255,0.75)',
+                background: opt.value === value ? 'rgba(0,255,136,0.08)' : 'transparent',
+                fontWeight: opt.value === value ? 600 : 400,
+              }}
+              onMouseEnter={(e) => {
+                if (opt.value !== value) (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = opt.value === value ? 'rgba(0,255,136,0.08)' : 'transparent';
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 import {
   SwarmAgent,
   CreateAgentPayload,
@@ -31,6 +119,7 @@ const MODELS: Record<ModelProvider, string[]> = {
   openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
   anthropic: ['claude-opus-4-5', 'claude-sonnet-4-5', 'claude-haiku-3-5'],
   google: ['gemini-2.5-pro', 'gemini-2.5-flash'],
+  groq: ['llama-3.3-70b-versatile', 'llama3-70b-8192', 'mixtral-8x7b-32768'],
 };
 
 export function AgentSwarm({ onClose }: AgentSwarmProps) {
@@ -85,8 +174,6 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
     }
 
     setLogLines([]);
-    const agent = agents.find((a) => a.id === selectedId);
-    if (!agent) return;
 
     const stop = streamAgentLogs(
       selectedId,
@@ -260,34 +347,23 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
 
             {/* Provider + Model */}
             <div className="flex gap-2">
-              <select
+              <StyledSelect
+                className="flex-1"
                 value={provider}
-                onChange={(e) => handleProviderChange(e.target.value as ModelProvider)}
-                className="flex-1 rounded-lg px-2.5 py-2 text-xs text-white outline-none"
-                style={{
-                  background: 'rgba(255,255,255,0.07)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                }}
-              >
-                <option value="openai">OpenAI</option>
-                <option value="anthropic">Anthropic</option>
-                <option value="google">Google</option>
-              </select>
-              <select
+                onChange={(val) => handleProviderChange(val as ModelProvider)}
+                options={[
+                  { value: 'openai', label: 'OpenAI' },
+                  { value: 'anthropic', label: 'Anthropic' },
+                  { value: 'google', label: 'Google' },
+                  { value: 'groq', label: 'Groq' },
+                ]}
+              />
+              <StyledSelect
+                className="flex-1"
                 value={model}
-                onChange={(e) => setModel(e.target.value)}
-                className="flex-1 rounded-lg px-2.5 py-2 text-xs text-white outline-none"
-                style={{
-                  background: 'rgba(255,255,255,0.07)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                }}
-              >
-                {MODELS[provider].map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
+                onChange={setModel}
+                options={MODELS[provider].map((m) => ({ value: m, label: m }))}
+              />
             </div>
 
             {/* Sub-agents + HITL */}
@@ -448,67 +524,74 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                     </div>
                   )}
                 </div>
-
-                {/* Result */}
-                {selectedAgent.result && isTerminal(selectedAgent.status) && (
-                  <div
-                    className="mt-3 px-3 py-2.5 rounded-xl text-xs text-white/70"
-                    style={{
-                      background: 'rgba(74,222,128,0.07)',
-                      border: '1px solid rgba(74,222,128,0.2)',
-                    }}
-                  >
-                    <span className="text-green-400 font-semibold">Result: </span>
-                    {selectedAgent.result}
-                  </div>
-                )}
               </div>
 
-              {/* Log console */}
-              <div
-                className="flex-1 overflow-y-auto p-4 font-mono text-xs space-y-0.5"
-                style={{ background: 'rgba(0,0,0,0.4)' }}
-              >
-                <p className="text-white/20 mb-3 pb-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  ── Execution Log ── {selectedAgent.id.slice(0, 8)}
-                </p>
+                {/* Split View: Logs & Output */}
+                <div className="flex flex-1 min-h-0">
+                  {/* Log console */}
+                  <div
+                    className="flex-1 overflow-y-auto p-4 font-mono text-xs space-y-0.5"
+                    style={{ background: 'rgba(0,0,0,0.4)' }}
+                  >
+                  <p className="text-white/20 mb-3 pb-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    ── Execution Log ── {selectedAgent.id.slice(0, 8)}
+                  </p>
 
-                {logLines.length === 0 && (
-                  <p className="text-white/20 italic">Waiting for log output…</p>
-                )}
+                  {logLines.length === 0 && (
+                    <p className="text-white/20 italic">Waiting for log output…</p>
+                  )}
 
-                {logLines.map((line, i) => {
-                  const isError = line.includes('❌') || line.includes('⚠️') || line.includes('failed');
-                  const isSuccess = line.includes('✅') || line.includes('🎉') || line.includes('completed');
-                  const isWarning = line.includes('⏸️') || line.includes('checkpoint');
+                  {logLines.map((line, i) => {
+                    const isError = line.includes('❌') || line.includes('⚠️') || line.includes('failed');
+                    const isSuccess = line.includes('✅') || line.includes('🎉') || line.includes('completed');
+                    const isWarning = line.includes('⏸️') || line.includes('checkpoint');
 
-                  return (
-                    <div
-                      key={i}
-                      className="leading-relaxed"
-                      style={{
-                        color: isError
-                          ? '#f87171'
-                          : isSuccess
-                          ? '#4ade80'
-                          : isWarning
-                          ? '#fbbf24'
-                          : 'rgba(255,255,255,0.7)',
-                      }}
-                    >
-                      {line}
+                    return (
+                      <div
+                        key={i}
+                        className="leading-relaxed"
+                        style={{
+                          color: isError
+                            ? '#f87171'
+                            : isSuccess
+                            ? '#4ade80'
+                            : isWarning
+                            ? '#fbbf24'
+                            : 'rgba(255,255,255,0.7)',
+                        }}
+                      >
+                        {line}
+                      </div>
+                    );
+                  })}
+
+                  {/* Blinking cursor while running */}
+                  {!isTerminal(selectedAgent.status) && (
+                    <span
+                      className="inline-block w-1.5 h-3.5 bg-green-400 ml-0.5"
+                      style={{ animation: 'blink 1s step-end infinite', verticalAlign: 'middle' }}
+                    />
+                  )}
+                  <div ref={logsEndRef} />
+                </div>
+
+                {/* Final Output Panel */}
+                {selectedAgent.result && isTerminal(selectedAgent.status) && (
+                  <div
+                    className="flex-1 overflow-y-auto p-6"
+                    style={{
+                      background: 'rgba(10,10,10,0.8)',
+                      borderLeft: '1px solid rgba(255,255,255,0.05)',
+                    }}
+                  >
+                    <h3 className="text-white/40 text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-2">
+                      <span className="text-green-400">✨</span> Final Output
+                    </h3>
+                    <div className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap">
+                      {selectedAgent.result}
                     </div>
-                  );
-                })}
-
-                {/* Blinking cursor while running */}
-                {!isTerminal(selectedAgent.status) && (
-                  <span
-                    className="inline-block w-1.5 h-3.5 bg-green-400 ml-0.5"
-                    style={{ animation: 'blink 1s step-end infinite', verticalAlign: 'middle' }}
-                  />
+                  </div>
                 )}
-                <div ref={logsEndRef} />
               </div>
             </>
           )}
@@ -523,6 +606,10 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
         @keyframes pulse {
           0%, 100% { opacity: 1; transform: scale(1); }
           50%       { opacity: 0.6; transform: scale(1.15); }
+        }
+        @keyframes swarmDropIn {
+          from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
         }
       `}</style>
     </div>
