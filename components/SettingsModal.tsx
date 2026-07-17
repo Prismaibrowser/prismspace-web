@@ -7,6 +7,7 @@ import { ClockPreview } from './ClockPreview';
 import { AvatarPicker } from './AvatarPicker';
 import { AppleSwitch } from '@/components/unlumen-ui/apple-switch';
 import { db, UserProfile } from '@/lib/db';
+import ProfileCard from './ProfileCard';
 
 type SettingsSection = 'clock' | 'themes' | 'stats' | 'quotes' | 'extras' | 'profile';
 type BackgroundMediaType = 'image' | 'video';
@@ -106,6 +107,11 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const [avatar, setAvatar] = useState('👤');
   const [isEditingUsername, setIsEditingUsername] = useState(false);
   const [tempUsername, setTempUsername] = useState('');
+  
+  // Profile card extra fields
+  const [cardHandle, setCardHandle] = useState('');
+  const [cardTitle, setCardTitle] = useState('PrismSpace User');
+  const [cardAvatarUrl, setCardAvatarUrl] = useState('');
 
   useEffect(() => {
     return () => {
@@ -695,47 +701,100 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
 
           {/* Profile Section */}
           {activeSection === 'profile' && (
-            <div className="space-y-8">
-              <div>
-                <h2 className="text-2xl font-semibold mb-6">Profile</h2>
-                
-                {/* Avatar Section */}
-                <div className="bg-white/5 rounded-xl p-6 mb-6">
-                  <h3 className="text-lg font-medium mb-4">Avatar</h3>
-                  <div className="flex items-center gap-6">
-                    <AvatarPicker
-                      currentAvatar={avatar}
-                      onAvatarChange={async (newAvatar) => {
-                        setAvatar(newAvatar);
-                        await db.user_profile.update('current', {
-                          avatar: newAvatar,
-                          updatedAt: new Date(),
-                        });
-                      }}
-                    />
-                    <div className="flex-1">
-                      <p className="text-sm text-white/60 mb-2">
-                        Choose an emoji or upload your own image
-                      </p>
-                      <p className="text-xs text-white/40">
-                        Your avatar appears in the dashboard greeting
-                      </p>
+            <div className="space-y-6">
+              <h2 className="text-2xl font-semibold mb-6">Profile</h2>
+
+              <div className="grid grid-cols-[1fr_320px] gap-6 items-start">
+                {/* LEFT: editor */}
+                <div className="space-y-5">
+
+                  {/* Avatar */}
+                  <div className="bg-white/5 rounded-xl p-5">
+                    <h3 className="text-base font-semibold mb-4">Avatar</h3>
+                    <div className="flex items-center gap-5">
+                      <AvatarPicker
+                        currentAvatar={avatar}
+                        onAvatarChange={async (newAvatar) => {
+                          setAvatar(newAvatar);
+                          setCardAvatarUrl('');
+                          await db.user_profile.update('current', {
+                            avatar: newAvatar,
+                            updatedAt: new Date(),
+                          });
+                        }}
+                      />
+                      <div className="flex-1">
+                        <p className="text-sm text-white/60 mb-2">Choose an emoji or upload a photo</p>
+                        <label
+                          htmlFor="profile-card-img-upload"
+                          className="inline-flex items-center gap-2 cursor-pointer px-3 py-1.5 rounded-lg text-xs font-medium"
+                          style={{
+                            background: 'rgba(255,255,255,0.07)',
+                            border: '1px solid rgba(255,255,255,0.12)',
+                            color: 'rgba(255,255,255,0.7)',
+                          }}
+                        >
+                          📷 Upload image
+                          <input
+                            id="profile-card-img-upload"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const reader = new FileReader();
+                              reader.onload = (ev) => {
+                                const url = ev.target?.result as string;
+                                setCardAvatarUrl(url);
+                              };
+                              reader.readAsDataURL(file);
+                            }}
+                          />
+                        </label>
+                        {cardAvatarUrl && (
+                          <button
+                            onClick={() => setCardAvatarUrl('')}
+                            className="ml-2 text-xs text-white/40 hover:text-white/70 transition-colors"
+                          >
+                            ✕ Remove photo
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Username Section */}
-                <div className="bg-white/5 rounded-xl p-6">
-                  <h3 className="text-lg font-medium mb-4">Username</h3>
-                  <div className="flex items-center gap-3">
-                    {isEditingUsername ? (
-                      <>
-                        <input
-                          type="text"
-                          value={tempUsername}
-                          onChange={(e) => setTempUsername(e.target.value)}
-                          onKeyDown={async (e) => {
-                            if (e.key === 'Enter') {
+                  {/* Display Name */}
+                  <div className="bg-white/5 rounded-xl p-5">
+                    <h3 className="text-base font-semibold mb-4">Display Name</h3>
+                    <div className="flex items-center gap-3">
+                      {isEditingUsername ? (
+                        <>
+                          <input
+                            type="text"
+                            value={tempUsername}
+                            onChange={(e) => setTempUsername(e.target.value)}
+                            onKeyDown={async (e) => {
+                              if (e.key === 'Enter') {
+                                const trimmed = tempUsername.trim();
+                                if (trimmed) {
+                                  setUsername(trimmed);
+                                  await db.user_profile.update('current', {
+                                    username: trimmed,
+                                    updatedAt: new Date(),
+                                  });
+                                  setIsEditingUsername(false);
+                                }
+                              } else if (e.key === 'Escape') {
+                                setIsEditingUsername(false);
+                              }
+                            }}
+                            className="flex-1 px-4 py-2 bg-[#0f141b] border border-[#283341] rounded text-white text-sm focus:outline-none focus:border-purple-500/50"
+                            placeholder="Enter display name"
+                            autoFocus
+                          />
+                          <button
+                            onClick={async () => {
                               const trimmed = tempUsername.trim();
                               if (trimmed) {
                                 setUsername(trimmed);
@@ -745,71 +804,106 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                                 });
                                 setIsEditingUsername(false);
                               }
-                            } else if (e.key === 'Escape') {
-                              setIsEditingUsername(false);
-                            }
-                          }}
-                          className="flex-1 px-4 py-2 bg-[#0f141b] border border-[#283341] rounded text-white text-sm focus:outline-none focus:border-purple-500/50"
-                          placeholder="Enter username"
-                          autoFocus
-                        />
-                        <button
-                          onClick={async () => {
-                            const trimmed = tempUsername.trim();
-                            if (trimmed) {
-                              setUsername(trimmed);
-                              await db.user_profile.update('current', {
-                                username: trimmed,
-                                updatedAt: new Date(),
-                              });
-                              setIsEditingUsername(false);
-                            }
-                          }}
-                          className="px-4 py-2 bg-purple-500/90 hover:bg-purple-500 text-white font-medium rounded transition-colors text-sm"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setIsEditingUsername(false)}
-                          className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-medium rounded transition-colors text-sm"
-                        >
-                          Cancel
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <div className="flex-1 px-4 py-2 bg-[#0f141b] border border-[#283341] rounded text-white text-sm">
-                          {username}
-                        </div>
-                        <button
-                          onClick={() => {
-                            setTempUsername(username);
-                            setIsEditingUsername(true);
-                          }}
-                          className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-medium rounded transition-colors text-sm"
-                        >
-                          Edit
-                        </button>
-                      </>
-                    )}
+                            }}
+                            className="px-4 py-2 bg-purple-500/90 hover:bg-purple-500 text-white font-medium rounded transition-colors text-sm"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setIsEditingUsername(false)}
+                            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-medium rounded transition-colors text-sm"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex-1 px-4 py-2 bg-[#0f141b] border border-[#283341] rounded text-white text-sm">
+                            {username}
+                          </div>
+                          <button
+                            onClick={() => {
+                              setTempUsername(username);
+                              setIsEditingUsername(true);
+                            }}
+                            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-medium rounded transition-colors text-sm"
+                          >
+                            Edit
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-xs text-white/40 mt-2">Appears on your profile card and dashboard greeting</p>
                   </div>
-                  <p className="text-xs text-white/40 mt-2">
-                    This name appears in your dashboard greeting
-                  </p>
+
+                  {/* Handle & Title */}
+                  <div className="bg-white/5 rounded-xl p-5 space-y-4">
+                    <h3 className="text-base font-semibold">Card Details</h3>
+                    <div>
+                      <label className="block text-xs text-white/50 mb-1.5 font-medium">@Handle</label>
+                      <div className="flex items-center">
+                        <span className="px-3 py-2 bg-white/5 border border-r-0 border-white/10 rounded-l text-white/40 text-sm">@</span>
+                        <input
+                          type="text"
+                          value={cardHandle}
+                          placeholder={username.toLowerCase().replace(/\s+/g, '')}
+                          onChange={(e) => setCardHandle(e.target.value.replace(/\s+/g, '').toLowerCase())}
+                          className="flex-1 px-3 py-2 bg-[#0f141b] border border-white/10 rounded-r text-white text-sm focus:outline-none focus:border-purple-500/50"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-white/50 mb-1.5 font-medium">Title / Role</label>
+                      <input
+                        type="text"
+                        value={cardTitle}
+                        onChange={(e) => setCardTitle(e.target.value)}
+                        className="w-full px-3 py-2 bg-[#0f141b] border border-white/10 rounded text-white text-sm focus:outline-none focus:border-purple-500/50"
+                        placeholder="e.g. Software Engineer"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Account info */}
+                  <div className="bg-white/5 rounded-xl p-5">
+                    <h3 className="text-base font-semibold mb-3">Account</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-white/60">Profile created</span>
+                        <span className="text-white">{new Date().toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-white/60">Last updated</span>
+                        <span className="text-white">{new Date().toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Profile Stats */}
-                <div className="bg-white/5 rounded-xl p-6 mt-6">
-                  <h3 className="text-lg font-medium mb-4">Account</h3>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-white/60">Profile created</span>
-                      <span className="text-white">{new Date().toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-white/60">Last updated</span>
-                      <span className="text-white">{new Date().toLocaleDateString()}</span>
-                    </div>
+                {/* RIGHT: live card preview */}
+                <div className="sticky top-0">
+                  <p className="text-xs text-white/40 uppercase tracking-widest font-semibold mb-4">Live Preview</p>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      transform: 'scale(0.78)',
+                      transformOrigin: 'top center',
+                    }}
+                  >
+                    <ProfileCard
+                      name={username}
+                      handle={cardHandle || username.toLowerCase().replace(/\s+/g, '')}
+                      title={cardTitle}
+                      status="Online"
+                      avatarUrl={
+                        cardAvatarUrl ||
+                        (avatar.startsWith('data:image') || avatar.startsWith('http')
+                          ? avatar
+                          : `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>${avatar}</text></svg>`)
+                      }
+                      contactText="Message"
+                    />
                   </div>
                 </div>
               </div>

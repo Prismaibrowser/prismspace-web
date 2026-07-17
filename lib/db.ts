@@ -108,6 +108,23 @@ export interface AiToolHistory {
   createdAt: number;
 }
 
+export interface AgentChatSession {
+  id: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface AgentChatMessage {
+  id?: number;
+  sessionId: string;
+  role: 'user' | 'assistant';
+  content: string;
+  agentId?: string;
+  status?: 'pending' | 'completed' | 'failed' | 'cancelled';
+  createdAt: number;
+}
+
 export interface LanguageLearningStats {
   key: string; // 'wordsPracticed', 'sentencesCorrected', 'conversationCount', 'translationCount'
   value: number;
@@ -148,6 +165,8 @@ export class PrismDatabase extends Dexie {
   random_picker_settings!: Table<RandomPickerSettings, string>;
   shortcuts!: Table<Shortcut, number>;
   ai_tool_history!: Table<AiToolHistory, number>;
+  agent_chat_sessions!: Table<AgentChatSession, string>;
+  agent_chat_messages!: Table<AgentChatMessage, number>;
   language_learning_stats!: Table<LanguageLearningStats, string>;
   settings!: Table<AppSettings, string>;
   user_profile!: Table<UserProfile, string>;
@@ -184,6 +203,26 @@ export class PrismDatabase extends Dexie {
       random_picker_settings: '&mode',
       shortcuts: '++id, appName, category, action, pinned, custom',
       ai_tool_history: '++id, toolType, createdAt',
+      language_learning_stats: '&key',
+      settings: '&key',
+      user_profile: '&key',
+      files: '&key'
+    });
+
+    this.version(3).stores({
+      checklists: '++id, name, createdAt, updatedAt',
+      checklist_items: '++id, checklistId, [checklistId+order], completed, createdAt',
+      focus_sessions: '++id, startedAt, completed',
+      focus_settings: '&key',
+      bookmarks: '++id, url, createdAt, lastVisitedAt, visitCount, *tags',
+      habits: '++id, name, createdAt',
+      habit_logs: '++id, [habitId+date], habitId, date',
+      random_picker_history: '++id, mode, createdAt',
+      random_picker_settings: '&mode',
+      shortcuts: '++id, appName, category, action, pinned, custom',
+      ai_tool_history: '++id, toolType, createdAt',
+      agent_chat_sessions: '&id, updatedAt, createdAt',
+      agent_chat_messages: '++id, sessionId, [sessionId+createdAt], agentId, role, createdAt',
       language_learning_stats: '&key',
       settings: '&key',
       user_profile: '&key',

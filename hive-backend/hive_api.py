@@ -17,6 +17,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 import time
 import uuid
 from datetime import datetime
@@ -24,9 +25,10 @@ from typing import AsyncGenerator, Optional
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -58,9 +60,18 @@ _agents: dict[str, dict] = {}
 # agent_id -> list of log lines
 _logs: dict[str, list[str]] = {}
 
+TOOLS_DIR = os.path.join(os.path.dirname(__file__), "hive", "tools")
+MCP_SERVERS_PATH = os.path.join(TOOLS_DIR, "mcp_servers.json")
+TOOLS_ENV_PATH = os.path.join(TOOLS_DIR, ".env")
+
 # ---------------------------------------------------------------------------
 # Pydantic models
 # ---------------------------------------------------------------------------
+
+
+class ChatContextMessage(BaseModel):
+    role: str
+    content: str
 
 
 class CreateAgentRequest(BaseModel):
@@ -69,11 +80,23 @@ class CreateAgentRequest(BaseModel):
     provider: str = "openai"       # openai | anthropic | google | groq
     max_agents: int = 3
     human_in_loop: bool = True
+    chat_history: list[ChatContextMessage] = Field(default_factory=list)
 
 
 class ApproveAgentRequest(BaseModel):
     approved: bool
     message: Optional[str] = None
+
+
+class McpTokenRequest(BaseModel):
+    server_name: Optional[str] = None
+    env_key: str
+    token: str
+
+
+class McpTokenRemoveRequest(BaseModel):
+    server_name: Optional[str] = None
+    env_key: str
 
 
 # ---------------------------------------------------------------------------
@@ -92,10 +115,9 @@ def _log(agent_id: str, message: str) -> None:
 
 def _load_tools_env() -> dict:
     """Load environment variables from the tools .env file."""
-    env_path = os.path.join(os.path.dirname(__file__), "hive", "tools", ".env")
     env_vars: dict = {}
     try:
-        with open(env_path, encoding="utf-8") as f:
+        with open(TOOLS_ENV_PATH, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if not line or line.startswith("#") or "=" not in line:
@@ -107,6 +129,59 @@ def _load_tools_env() -> dict:
     return env_vars
 
 
+def _mask_token(value: str) -> str:
+    if len(value) <= 8:
+        return "••••"
+    return f"{value[:4]}...{value[-4:]}"
+
+
+def _load_mcp_servers() -> dict:
+    try:
+        with open(MCP_SERVERS_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def _write_mcp_servers(mcp_servers: dict) -> None:
+    os.makedirs(TOOLS_DIR, exist_ok=True)
+    with open(MCP_SERVERS_PATH, "w", encoding="utf-8") as f:
+        json.dump(mcp_servers, f, indent=2)
+        f.write("\n")
+
+
+def _write_tools_env_value(key: str, value: str) -> None:
+    os.makedirs(TOOLS_DIR, exist_ok=True)
+    lines: list[str] = []
+    if os.path.exists(TOOLS_ENV_PATH):
+        with open(TOOLS_ENV_PATH, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+
+    next_line = f"{key}={value}"
+    found = False
+    for index, line in enumerate(lines):
+        if line.strip().startswith(f"{key}="):
+            lines[index] = next_line
+            found = True
+            break
+
+    if not found:
+        if lines and lines[-1].strip():
+            lines.append("")
+        lines.append(next_line)
+
+    with open(TOOLS_ENV_PATH, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines).rstrip() + "\n")
+
+    os.environ[key] = value
+
+
+def _extract_env_key(env_value: str) -> str:
+    if env_value.startswith("${") and env_value.endswith("}"):
+        return env_value[2:-1]
+    return env_value
+
+
 def _build_system_prompt() -> str:
     """Build a context-aware system prompt that includes MCP tool information."""
     base = (
@@ -116,12 +191,10 @@ def _build_system_prompt() -> str:
     )
 
     # Load MCP server info
-    mcp_path = os.path.join(os.path.dirname(__file__), "hive", "tools", "mcp_servers.json")
     tools_env = _load_tools_env()
 
     try:
-        with open(mcp_path, "r", encoding="utf-8") as f:
-            mcp_servers = json.load(f)
+        mcp_servers = _load_mcp_servers()
 
         if mcp_servers:
             base += "## Initialized MCP Tool Servers (LIVE & READY)\n"
@@ -186,7 +259,18 @@ def _build_system_prompt() -> str:
     return base
 
 
-async def _call_groq(model: str, objective: str) -> str:
+def _normalise_chat_history(chat_history: list[ChatContextMessage]) -> list[dict[str, str]]:
+    """Return the compact user/assistant history accepted by chat providers."""
+    messages: list[dict[str, str]] = []
+    for item in chat_history[-16:]:
+        role = item.role if item.role in ("user", "assistant") else "user"
+        content = item.content.strip()
+        if content:
+            messages.append({"role": role, "content": content[:6000]})
+    return messages
+
+
+async def _call_groq(model: str, objective: str, chat_history: list[ChatContextMessage]) -> str:
     """Call Groq API and return the response text."""
     from groq import AsyncGroq
     client = AsyncGroq(api_key=os.environ.get("GROQ_API_KEY"))
@@ -194,6 +278,7 @@ async def _call_groq(model: str, objective: str) -> str:
         model=model,
         messages=[
             {"role": "system", "content": _build_system_prompt()},
+            *_normalise_chat_history(chat_history),
             {"role": "user", "content": objective},
         ],
         temperature=0.7,
@@ -202,7 +287,7 @@ async def _call_groq(model: str, objective: str) -> str:
     return response.choices[0].message.content or "(No response generated)"
 
 
-async def _call_openai(model: str, objective: str) -> str:
+async def _call_openai(model: str, objective: str, chat_history: list[ChatContextMessage]) -> str:
     """Call OpenAI API and return the response text."""
     from openai import AsyncOpenAI
     client = AsyncOpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
@@ -210,6 +295,7 @@ async def _call_openai(model: str, objective: str) -> str:
         model=model,
         messages=[
             {"role": "system", "content": _build_system_prompt()},
+            *_normalise_chat_history(chat_history),
             {"role": "user", "content": objective},
         ],
         temperature=0.7,
@@ -218,7 +304,7 @@ async def _call_openai(model: str, objective: str) -> str:
     return response.choices[0].message.content or "(No response generated)"
 
 
-async def _call_anthropic(model: str, objective: str) -> str:
+async def _call_anthropic(model: str, objective: str, chat_history: list[ChatContextMessage]) -> str:
     """Call Anthropic API and return the response text."""
     import anthropic
     client = anthropic.AsyncAnthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
@@ -227,17 +313,25 @@ async def _call_anthropic(model: str, objective: str) -> str:
         max_tokens=4096,
         system=_build_system_prompt(),
         messages=[
+            *_normalise_chat_history(chat_history),
             {"role": "user", "content": objective},
         ],
     )
     return response.content[0].text if response.content else "(No response generated)"
 
 
-async def _call_google(model: str, objective: str) -> str:
+async def _call_google(model: str, objective: str, chat_history: list[ChatContextMessage]) -> str:
     """Call Google Gemini API and return the response text."""
     from google import genai
     client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
-    full_prompt = _build_system_prompt() + "\n\n---\n\nUser request: " + objective
+    history_text = "\n".join(
+        f"{message['role'].title()}: {message['content']}"
+        for message in _normalise_chat_history(chat_history)
+    )
+    full_prompt = _build_system_prompt()
+    if history_text:
+        full_prompt += "\n\n## Previous Chat Context\n" + history_text
+    full_prompt += "\n\n---\n\nUser request: " + objective
     response = await client.aio.models.generate_content(
         model=model,
         contents=full_prompt,
@@ -304,13 +398,13 @@ async def _run_hive_agent(agent_id: str, request: CreateAgentRequest) -> None:
 
         provider = request.provider.lower()
         if provider == "groq":
-            result_text = await _call_groq(request.model, request.objective)
+            result_text = await _call_groq(request.model, request.objective, request.chat_history)
         elif provider == "openai":
-            result_text = await _call_openai(request.model, request.objective)
+            result_text = await _call_openai(request.model, request.objective, request.chat_history)
         elif provider == "anthropic":
-            result_text = await _call_anthropic(request.model, request.objective)
+            result_text = await _call_anthropic(request.model, request.objective, request.chat_history)
         elif provider == "google":
-            result_text = await _call_google(request.model, request.objective)
+            result_text = await _call_google(request.model, request.objective, request.chat_history)
         else:
             raise ValueError(f"Unsupported provider: {request.provider}")
 
@@ -341,6 +435,130 @@ async def _run_hive_agent(agent_id: str, request: CreateAgentRequest) -> None:
 async def health_check():
     """Liveness probe — used by the frontend to verify the backend is running."""
     return {"status": "ok", "version": "1.0.0", "agents": len(_agents)}
+
+
+@app.get("/api/mcp")
+async def list_mcp_servers():
+    """Return MCP server configuration with credential values masked."""
+    mcp_servers = _load_mcp_servers()
+    tools_env = _load_tools_env()
+    servers = []
+    token_usage: dict[str, list[str]] = {}
+
+    for name, config in mcp_servers.items():
+        env_config = config.get("env", {}) or {}
+        env_vars = []
+        for env_key, env_value in env_config.items():
+            resolved_key = _extract_env_key(env_value)
+            configured = bool(tools_env.get(resolved_key) or os.environ.get(resolved_key))
+            token_usage.setdefault(resolved_key, []).append(name)
+            env_vars.append({
+                "key": resolved_key,
+                "configured": configured,
+            })
+
+        servers.append({
+            "name": name,
+            "transport": config.get("transport", "unknown"),
+            "command": config.get("command", ""),
+            "args": config.get("args", []),
+            "description": config.get("description", ""),
+            "env": env_vars,
+        })
+
+    token_keys = set(tools_env.keys()) | set(token_usage.keys())
+    tokens = [
+        {
+            "key": key,
+            "configured": bool(tools_env.get(key) or os.environ.get(key)),
+            "masked": _mask_token(tools_env.get(key) or os.environ.get(key, "")),
+            "used_by": token_usage.get(key, []),
+        }
+        for key in sorted(token_keys)
+    ]
+
+    return {"servers": servers, "tokens": tokens, "env_file": TOOLS_ENV_PATH}
+
+
+@app.post("/api/mcp/tokens")
+async def save_mcp_token(body: McpTokenRequest):
+    """Attach or update an env token for a configured MCP server."""
+    server_name = body.server_name.strip() if body.server_name else ""
+    env_key = body.env_key.strip().upper()
+    token = body.token.strip()
+
+    if not re.fullmatch(r"[A-Z][A-Z0-9_]{2,80}", env_key):
+        raise HTTPException(status_code=400, detail="Invalid environment variable name")
+    if not token:
+        raise HTTPException(status_code=400, detail="Token cannot be empty")
+
+    if server_name:
+        mcp_servers = _load_mcp_servers()
+        server = mcp_servers.get(server_name)
+        if not server:
+            raise HTTPException(status_code=404, detail="MCP server not found")
+
+        server.setdefault("env", {})
+        server["env"][env_key] = f"${{{env_key}}}"
+        _write_mcp_servers(mcp_servers)
+
+    _write_tools_env_value(env_key, token)
+
+    return {
+        "ok": True,
+        "server": server_name or None,
+        "env_key": env_key,
+        "env_file": TOOLS_ENV_PATH,
+        "configured": True,
+    }
+
+
+@app.delete("/api/mcp/tokens")
+async def remove_mcp_token(body: McpTokenRemoveRequest):
+    """Remove an env token from the tools .env and optionally from an MCP server entry."""
+    server_name = body.server_name.strip() if body.server_name else ""
+    env_key = body.env_key.strip().upper()
+
+    if not re.fullmatch(r"[A-Z][A-Z0-9_]{2,80}", env_key):
+        raise HTTPException(status_code=400, detail="Invalid environment variable name")
+
+    # Remove from tools .env
+    try:
+        if os.path.exists(TOOLS_ENV_PATH):
+            with open(TOOLS_ENV_PATH, encoding="utf-8") as f:
+                lines = f.read().splitlines()
+        else:
+            lines = []
+
+        new_lines = [ln for ln in lines if not ln.strip().startswith(f"{env_key}=")]
+
+        # Trim trailing empty lines
+        while new_lines and not new_lines[-1].strip():
+            new_lines.pop()
+
+        with open(TOOLS_ENV_PATH, "w", encoding="utf-8") as f:
+            if new_lines:
+                f.write("\n".join(new_lines).rstrip() + "\n")
+            else:
+                f.write("")
+
+        # Also remove env reference from MCP server config if requested
+        if server_name:
+            mcp_servers = _load_mcp_servers()
+            server = mcp_servers.get(server_name)
+            if server and server.get("env"):
+                # env entries map env_key -> "${ENV_KEY}" or similar
+                envs = server.get("env", {})
+                # remove any env mapping that resolves to this key
+                keys_to_remove = [k for k, v in envs.items() if _extract_env_key(v) == env_key]
+                for k in keys_to_remove:
+                    envs.pop(k, None)
+                server["env"] = envs
+                _write_mcp_servers(mcp_servers)
+
+        return {"ok": True, "env_key": env_key, "env_file": TOOLS_ENV_PATH}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 @app.get("/api/agents")

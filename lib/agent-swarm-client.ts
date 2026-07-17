@@ -30,12 +30,45 @@ export interface SwarmAgent {
   approved: boolean | null;
 }
 
+export interface AgentChatContextMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface McpEnvVarStatus {
+  key: string;
+  configured: boolean;
+}
+
+export interface McpServerStatus {
+  name: string;
+  transport: string;
+  command: string;
+  args: string[];
+  description: string;
+  env: McpEnvVarStatus[];
+}
+
+export interface McpTokenStatus {
+  key: string;
+  configured: boolean;
+  masked: string;
+  used_by: string[];
+}
+
+export interface McpServerListResponse {
+  servers: McpServerStatus[];
+  tokens: McpTokenStatus[];
+  env_file?: string;
+}
+
 export interface CreateAgentPayload {
   objective: string;
   model?: string;
   provider?: ModelProvider;
   max_agents?: number;
   human_in_loop?: boolean;
+  chat_history?: AgentChatContextMessage[];
 }
 
 const BASE = '/api/agent-swarm';
@@ -59,6 +92,7 @@ export async function createAgent(payload: CreateAgentPayload): Promise<SwarmAge
       provider: payload.provider ?? 'openai',
       max_agents: payload.max_agents ?? 3,
       human_in_loop: payload.human_in_loop ?? true,
+      chat_history: payload.chat_history ?? [],
     }),
   });
   if (!res.ok) throw new Error(`Failed to create agent: ${res.status}`);
@@ -87,6 +121,40 @@ export async function approveAgent(
 export async function deleteAgent(id: string): Promise<void> {
   const res = await fetch(`${BASE}/agents/${id}`, { method: 'DELETE' });
   if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
+}
+
+// ── MCP server/token management ─────────────────────────────────────────────
+
+export async function listMcpServers(): Promise<McpServerListResponse> {
+  const res = await fetch(`${BASE}/mcp`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to list MCP servers: ${res.status}`);
+  const data = (await res.json()) as McpServerListResponse;
+  return data;
+}
+
+export async function saveMcpToken(payload: {
+  server_name?: string;
+  env_key: string;
+  token: string;
+}): Promise<void> {
+  const res = await fetch(`${BASE}/mcp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`Failed to save MCP token: ${res.status}`);
+}
+
+export async function removeMcpToken(payload: {
+  server_name?: string;
+  env_key: string;
+}): Promise<void> {
+  const res = await fetch(`${BASE}/mcp`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`Failed to remove MCP token: ${res.status}`);
 }
 
 // ── Health ────────────────────────────────────────────────────────────────────

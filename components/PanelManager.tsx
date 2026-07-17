@@ -162,6 +162,7 @@ export function PanelManager({ activePanel, onClose }: PanelManagerProps) {
         style={{
           width: config.position === 'full' ? '100%' : config.width,
           maxWidth: config.position === 'full' ? '90vw' : undefined,
+          overflowX: 'hidden',
         }}
         onClick={(e) => e.stopPropagation()}
       >
