@@ -102,10 +102,10 @@ export default function CardFlip({
                 <div
                   className={cn(
                     "absolute inset-[-8px] rounded-lg transition-opacity duration-300",
-                    "bg-gradient-to-br from-orange-500/20 via-orange-500/10 to-transparent"
+                    "bg-gradient-to-br from-green-500/20 via-green-500/10 to-transparent"
                   )}
                 />
-                <Repeat2 className="relative z-10 h-4 w-4 text-orange-500 transition-transform duration-300 group-hover/icon:-rotate-12 group-hover/icon:scale-110" />
+                <Repeat2 className="relative z-10 h-4 w-4 text-green-500 transition-transform duration-300 group-hover/icon:-rotate-12 group-hover/icon:scale-110" />
               </div>
             </div>
           </div>
@@ -149,7 +149,7 @@ export default function CardFlip({
                     transitionDelay: `${index * 100 + 200}ms`,
                   }}
                 >
-                  <ArrowRight className="h-3 w-3 text-orange-500 flex-shrink-0" />
+                  <ArrowRight className="h-3 w-3 text-green-500 flex-shrink-0" />
                   <span>{feature}</span>
                 </div>
               ))}

@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 
-type ClockStyle = 'default' | 'minimal' | 'serif' | 'handwritten' | 'minimal-light' | 
+export type ClockStyle = 'default' | 'minimal' | 'serif' | 'handwritten' | 'minimal-light' | 
   'serif-condensed' | 'bitcount' | 'corpta' | 'fenotype' | 'nclkemgor' | 
-  'westiva' | 'ammonite' | 'crude' | 'ghetto' | 'zombiess';
+  'westiva' | 'ammonite' | 'crude' | 'zombiess' | 'xolonium' | 'nemoy';
 
-const clockStyleClasses: Record<ClockStyle, string> = {
+export const clockStyleClasses: Record<ClockStyle, string> = {
   default: 'font-montserrat font-black',
   minimal: 'font-sans font-light tracking-[0.1em]',
   serif: 'font-serif font-normal tracking-tight',
@@ -20,8 +20,9 @@ const clockStyleClasses: Record<ClockStyle, string> = {
   westiva: 'font-westiva font-normal tracking-wider',
   ammonite: 'font-ammonite font-normal tracking-wide',
   crude: 'font-crude font-normal tracking-[0.1em]',
-  ghetto: 'font-ghetto font-normal tracking-wide !text-[8rem]',
-  zombiess: 'font-zombiess font-normal tracking-wide'
+  zombiess: 'font-zombiess font-normal tracking-wide',
+  xolonium: 'font-xolonium font-normal tracking-wide',
+  nemoy: 'font-nemoy font-normal tracking-wide'
 };
 
 export function Clock() {

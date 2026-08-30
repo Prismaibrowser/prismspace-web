@@ -2,12 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { NotepadPanel } from './tools/NotepadPanel';
-import { JsonToolkit } from './tools/JsonToolkit';
 import { ColorGenerator } from './tools/ColorGenerator';
+import { WebScraperTool } from './tools/WebScraperTool';
+import { PomodoroTimer } from './tools/PomodoroTimer';
+import { SQLPlayground } from './tools/SQLPlayground';
+import { AgentSwarm } from './AgentSwarm';
 
-type PanelType = 'notepad' | 'json-toolkit' | 'crypto-utils' | 'regex-workbench' | 
-  'markdown-editor' | 'git-reference' | 'time-date' | 'color-gen' | 'prompt-synthesizer' |
-  'writing-assistant' | 'language-learning' | 'code-explainer' | 'code-translator' | 'decision-analyzer';
+type PanelType = 'notepad' |
+  'git-reference' | 'color-gen' | 'qr-generator' | 'prompt-synthesizer' |
+  'writing-assistant' | 'code-explainer' | 'code-translator' | 'decision-analyzer' |
+  'web-scraper' | 'pomodoro-timer' | 'agent-swarm' | 'sql-playground';
 
 interface PanelConfig {
   type: PanelType;
@@ -26,54 +30,49 @@ const panelConfigs: Record<PanelType, PanelConfig> = {
     width: '500px',
     component: NotepadPanel,
   },
-  'json-toolkit': {
-    type: 'json-toolkit',
-    title: 'JSON Toolkit',
-    position: 'left',
-    width: '550px',
-    component: JsonToolkit,
-  },
-  'crypto-utils': {
-    type: 'crypto-utils',
-    title: 'Crypto Utils',
-    position: 'left',
-    width: '550px',
-    iframeSrc: '/dev-space/crypto-utils.html',
-  },
-  'regex-workbench': {
-    type: 'regex-workbench',
-    title: 'Regex Workbench',
-    position: 'right',
-    width: '600px',
-    iframeSrc: '/dev-space/regex-workbench.html',
-  },
-  'markdown-editor': {
-    type: 'markdown-editor',
-    title: 'Markdown Editor',
-    position: 'right',
-    width: '700px',
-    iframeSrc: '/dev-space/markdown-editor.html',
-  },
+
   'git-reference': {
     type: 'git-reference',
     title: 'Git Reference',
     position: 'right',
     width: '650px',
-    iframeSrc: '/dev-space/git-reference.html',
+    iframeSrc: '/dev-space/git-reference',
   },
-  'time-date': {
-    type: 'time-date',
-    title: 'Time & Date',
-    position: 'right',
-    width: '550px',
-    iframeSrc: '/dev-space/time-date.html',
-  },
+
   'color-gen': {
     type: 'color-gen',
     title: 'Color Generator',
     position: 'right',
     width: '600px',
     component: ColorGenerator,
+  },
+  'qr-generator': {
+    type: 'qr-generator',
+    title: 'QR Code Generator',
+    position: 'right',
+    width: '85%',
+    iframeSrc: '/dev-space/qr-generator',
+  },
+  'web-scraper': {
+    type: 'web-scraper',
+    title: 'Web Scraper',
+    position: 'right',
+    width: '82%',
+    component: WebScraperTool,
+  },
+  'pomodoro-timer': {
+    type: 'pomodoro-timer',
+    title: 'Pomodoro Timer',
+    position: 'right',
+    width: '82%',
+    component: PomodoroTimer,
+  },
+  'sql-playground': {
+    type: 'sql-playground',
+    title: 'SQL Playground',
+    position: 'right',
+    width: '88%',
+    component: SQLPlayground,
   },
   'prompt-synthesizer': {
     type: 'prompt-synthesizer',
@@ -89,13 +88,7 @@ const panelConfigs: Record<PanelType, PanelConfig> = {
     width: '90%',
     iframeSrc: '/dev-space/writing-assistant.html',
   },
-  'language-learning': {
-    type: 'language-learning',
-    title: 'Language Learning',
-    position: 'right',
-    width: '90%',
-    iframeSrc: '/dev-space/language-learning.html',
-  },
+
   'code-explainer': {
     type: 'code-explainer',
     title: 'Code Explainer',
@@ -117,6 +110,13 @@ const panelConfigs: Record<PanelType, PanelConfig> = {
     width: '90%',
     iframeSrc: '/dev-space/decision-analyzer.html',
   },
+  'agent-swarm': {
+    type: 'agent-swarm',
+    title: 'Agent Swarm',
+    position: 'full',
+    width: '92%',
+    component: AgentSwarm,
+  },
 };
 
 interface PanelManagerProps {
@@ -125,6 +125,20 @@ interface PanelManagerProps {
 }
 
 export function PanelManager({ activePanel, onClose }: PanelManagerProps) {
+  const [opacity, setOpacity] = useState(100);
+
+  useEffect(() => {
+    const loadOpacity = () => {
+      const saved = localStorage.getItem('devtools_opacity');
+      if (saved !== null) {
+        setOpacity(Math.max(10, Math.min(100, Number(saved))));
+      }
+    };
+    loadOpacity();
+    window.addEventListener('prism:devtools-opacity-change', loadOpacity);
+    return () => window.removeEventListener('prism:devtools-opacity-change', loadOpacity);
+  }, []);
+
   if (!activePanel) return null;
 
   const config = panelConfigs[activePanel];
@@ -146,22 +160,30 @@ export function PanelManager({ activePanel, onClose }: PanelManagerProps) {
     <>
       {/* Overlay */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] transition-opacity duration-300"
+        className="fixed inset-0 z-[1000] transition-all duration-300"
+        style={{
+          backgroundColor: `rgba(0, 0, 0, ${0.5 * (opacity / 100)})`,
+          backdropFilter: opacity < 100 ? `blur(${Math.round(4 * (opacity / 100))}px)` : undefined,
+        }}
         onClick={onClose}
       />
 
       {/* Panel */}
       <div
-        className={`fixed top-0 h-screen bg-[#0a0a0a] border-white/15 z-[1001] 
+        className={`fixed top-0 h-screen border-white/15 z-[1001] 
                     shadow-[4px_0_30px_rgba(0,0,0,0.8)] transition-all duration-300
                     ${positionClasses[config.position]}
                     ${animationClasses[config.position]}
                     ${config.position === 'left' ? 'border-r' : ''}
                     ${config.position === 'right' ? 'border-l' : ''}
                     ${config.position === 'full' ? 'border' : ''}`}
-        style={{ 
+        style={{
           width: config.position === 'full' ? '100%' : config.width,
           maxWidth: config.position === 'full' ? '90vw' : undefined,
+          overflowX: 'hidden',
+          backgroundColor: `rgba(10, 10, 10, ${opacity / 100})`,
+          backdropFilter: `blur(${Math.round(16 * (opacity / 100))}px)`,
+          opacity: Math.max(0.1, opacity / 100),
         }}
         onClick={(e) => e.stopPropagation()}
       >

@@ -6,16 +6,20 @@ import { DevSpace } from '@/components/DevSpace';
 import { TopLogo } from '@/components/TopLogo';
 import { TopQuote } from '@/components/TopQuote';
 import { QuickActions } from '@/components/QuickActions';
-import { SystemInfo } from '@/components/SystemInfo';
 import { SettingsModal } from '@/components/SettingsModal';
 import { PanelManager, usePanelManager } from '@/components/PanelManager';
-import { FloatingMusicPlayer } from '@/components/FloatingMusicPlayer';
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [showMatrix, setShowMatrix] = useState(true);
-  const [showMusicPlayer, setShowMusicPlayer] = useState(false);
   const { activePanel, openPanel, closePanel } = usePanelManager();
+
+  // Open Agent Swarm panel from SearchBar custom event
+  useEffect(() => {
+    const handler = () => openPanel('agent-swarm');
+    window.addEventListener('prism:open-agent-swarm', handler);
+    return () => window.removeEventListener('prism:open-agent-swarm', handler);
+  }, [openPanel]);
 
   useEffect(() => {
     // Check if matrix display should be shown
@@ -55,18 +59,13 @@ Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}
       <TopQuote />
       <MainContainer />
       <DevSpace onToolAction={handleToolAction} />
-      <SystemInfo />
       <QuickActions
         onSettingsClick={() => setShowSettings(true)}
         onNotepadClick={() => openPanel('notepad')}
-        onMusicPlayerClick={() => setShowMusicPlayer(true)}
         showMatrix={showMatrix}
       />
       {showSettings && (
         <SettingsModal onClose={() => setShowSettings(false)} />
-      )}
-      {showMusicPlayer && (
-        <FloatingMusicPlayer onClose={() => setShowMusicPlayer(false)} />
       )}
       <PanelManager activePanel={activePanel} onClose={closePanel} />
     </>
