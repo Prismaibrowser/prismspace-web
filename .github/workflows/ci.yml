@@ -87,7 +87,7 @@ jobs:
       - name: Build Alloy collector image
         run: docker build -f monitoring/Dockerfile -t prismspace-alloy:ci monitoring
       - name: Scan Alloy collector image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: prismspace-alloy:ci
           format: table
@@ -99,7 +99,7 @@ jobs:
         run: docker build -f model/Dockerfile -t prismspace-model-api:ci .
       - name: Scan model image when artifacts are available
         if: ${{ hashFiles('model/artifacts/**') != '' }}
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: prismspace-model-api:ci
           format: table
