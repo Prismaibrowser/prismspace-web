@@ -245,7 +245,7 @@ import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
 import { AgentCard } from './AgentCard';
 import GridLoader from '@/components/ui/smoothui/grid-loader';
-import { SwarmDagGraph } from './SwarmDagGraph';
+import { SwarmDagGraph, getLatestAgentTask } from './SwarmDagGraph';
 import { db, type AgentChatMessage } from '@/lib/db';
 
 interface AgentSwarmProps {
@@ -930,6 +930,10 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
   const selectedAgent = agents.find((a) => a.id === selectedId);
   const transferStatus = useMemo(() => getTransferStatus(logLines), [logLines]);
   const selectedMcpToken = mcpTokens.find((token) => token.key === mcpEnvKey);
+  const selectedTask = useMemo(
+    () => (selectedAgent ? getLatestAgentTask(selectedAgent, logLines) : undefined),
+    [selectedAgent, logLines],
+  );
 
   const currentServerMeta = useMemo(
     () => getMcpServerMeta(selectedMcpServer),
@@ -1955,6 +1959,12 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                         <p className="mt-1 truncate text-xs" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--prism-muted)' }}>
                           {selectedAgentModelLabel}
                         </p>
+                        {selectedTask && !isTerminal(selectedAgent.status) && (
+                          <p className="mt-2 flex items-start gap-2 text-xs" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'rgba(255,255,255,0.78)' }}>
+                            <span style={{ color: 'var(--prism-primary)', fontWeight: 700 }}>▸</span>
+                            <span className="break-words leading-relaxed">{selectedTask}</span>
+                          </p>
+                        )}
                       </div>
 
                       <div className="flex flex-shrink-0 flex-col items-end gap-3">
