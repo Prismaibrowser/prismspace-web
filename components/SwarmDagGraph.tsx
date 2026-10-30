@@ -21,6 +21,7 @@ export interface DagNode {
   mcpType?: 'figma' | 'github' | 'database' | 'browser' | 'terminal';
   status: 'idle' | 'running' | 'awaiting_approval' | 'completed' | 'failed' | 'cancelled';
   seed?: string;
+  task?: string;
   x: number;
   y: number;
 }
@@ -31,12 +32,54 @@ export interface DagEdge {
   active: boolean;
 }
 
+// Spawned worker identifiers for a run (backend-assigned, e.g. ["Agent-A", "Agent-B"])
+function getSpawnedWorkers(agent: SwarmAgent): string[] {
+  const maxAgents = Math.min(3, Math.max(1, agent.max_agents || 1));
+  return agent.selected_agents?.length
+    ? agent.selected_agents
+    : Array.from({ length: maxAgents }, (_, i) => `Agent-${String.fromCharCode(65 + i)}`);
+}
+
+// Latest log line describing an actual task (skips spawn / boot-strap chatter)
+function findTaskLine(logLines: string[], agent: SwarmAgent): string | undefined {
+  const keys = getSpawnedWorkers(agent).map((w) => w.toLowerCase());
+  for (let i = logLines.length - 1; i >= 0; i--) {
+    const line = logLines[i] ?? '';
+    const lower = line.toLowerCase();
+    if (!lower) continue;
+    if (lower.includes('ready') || lower.includes('spawning')) continue;
+    if (keys.some((k) => lower.includes(k))) return line;
+  }
+  return undefined;
+}
+
+// Per-worker task map: worker id (e.g. "Agent-B") -> current task description
+export function getWorkerTaskMap(agent: SwarmAgent, logLines: string[]): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const name of getSpawnedWorkers(agent)) {
+    const key = name.toLowerCase();
+    for (let i = logLines.length - 1; i >= 0; i--) {
+      const line = logLines[i] ?? '';
+      const lower = line.toLowerCase();
+      if (!lower.includes(key)) continue;
+      if (lower.includes('ready') || lower.includes('spawning')) continue;
+      map[name] = line;
+      break;
+    }
+  }
+  return map;
+}
+
+// Latest task line across all spawned workers — the run's current task
+export function getLatestAgentTask(agent: SwarmAgent, logLines: string[]): string | undefined {
+  return findTaskLine(logLines, agent);
+}
+
 export function SwarmDagGraph({ agent, logLines }: SwarmDagGraphProps) {
   const [hoveredNode, setHoveredNode] = useState<DagNode | null>(null);
 
   // Combine objective and logs for text scanning
   const fullText = (agent.objective + ' ' + logLines.join(' ')).toLowerCase();
-  const lastLine = logLines[logLines.length - 1] ?? '';
   const isTerminated = ['completed', 'failed', 'cancelled'].includes(agent.status);
 
   // Dynamic MCP Detection
@@ -62,6 +105,22 @@ export function SwarmDagGraph({ agent, logLines }: SwarmDagGraphProps) {
   // Build sub-agent list dynamically
   const maxAgents = Math.min(3, Math.max(1, agent.max_agents || 1));
   const subAgents = Array.from({ length: maxAgents }, (_, i) => `Agent-${String.fromCharCode(65 + i)}`);
+
+  // ── Per-sub-agent task awareness from the live log stream ─────────────────
+  // For every spawned worker (e.g. "Agent-B") we surface the most recent log
+  // line that describes the task it is currently executing (tool pick-up, tool
+  // execution, observations...). Lines about spawning / worker boot-strap chatter
+  // are skipped so the task reflects actual work.
+  const taskByAgent = getWorkerTaskMap(agent, logLines);
+
+  // Current task for the planner tier (from planning-phase log chatter) and the
+  // synthesizer tier (from final-synthesis log chatter), for hover inspection.
+  const plannerTask =
+    logLines.filter((l) => /dag|plan|compil|objective/i.test(l)).pop() ?? undefined;
+  const synthesizerTask =
+    agent.status === 'completed'
+      ? 'Final synthesis delivered'
+      : logLines.filter((l) => /synthes|final|answer|response|deliver/i.test(l)).pop() ?? undefined;
 
   // Compute node statuses
   const rootStatus: DagNode['status'] = 'completed';
@@ -115,6 +174,7 @@ export function SwarmDagGraph({ agent, logLines }: SwarmDagGraphProps) {
     label: 'Planner',
     sublabel: 'Execution DAG',
     type: 'planner',
+    task: plannerTask,
     status: plannerStatus,
     x: currentX,
     y: 110,
@@ -125,12 +185,11 @@ export function SwarmDagGraph({ agent, logLines }: SwarmDagGraphProps) {
     maxAgents === 1 ? [110] : maxAgents === 2 ? [65, 155] : [45, 110, 175];
 
   subAgents.forEach((name, i) => {
-    const isActive = agent.status === 'running' && lastLine.includes(name);
     let subStatus: DagNode['status'] = 'idle';
     if (agent.status === 'completed') subStatus = 'completed';
     else if (agent.status === 'failed') subStatus = 'failed';
     else if (agent.status === 'cancelled') subStatus = 'cancelled';
-    else if (isActive) subStatus = 'running';
+    else if (taskByAgent[name]) subStatus = 'running';
     else if (agent.status === 'running' || agent.status === 'awaiting_approval') subStatus = 'running';
 
     nodes.push({
@@ -139,6 +198,7 @@ export function SwarmDagGraph({ agent, logLines }: SwarmDagGraphProps) {
       sublabel: `Worker ${String.fromCharCode(65 + i)}`,
       type: 'agent',
       seed: name,
+      task: taskByAgent[name] || undefined,
       status: subStatus,
       x: currentX,
       y: subAgentYOffsets[i],
@@ -178,6 +238,10 @@ export function SwarmDagGraph({ agent, logLines }: SwarmDagGraphProps) {
       label: 'Approval',
       sublabel: 'Checkpoint',
       type: 'approval',
+      task:
+        agent.status === 'awaiting_approval'
+          ? `Awaiting operator approval for \`${agent.pending_approval?.tool ?? 'tool'}\``
+          : undefined,
       status: approvalStatus,
       x: currentX,
       y: 110,
@@ -191,6 +255,7 @@ export function SwarmDagGraph({ agent, logLines }: SwarmDagGraphProps) {
     label: 'Synthesizer',
     sublabel: 'Final Output',
     type: 'synthesizer',
+    task: synthesizerTask,
     status: synthesizerStatus,
     x: currentX,
     y: 110,
@@ -457,12 +522,17 @@ export function SwarmDagGraph({ agent, logLines }: SwarmDagGraphProps) {
 
       {/* Dynamic Hover Tooltip */}
       {hoveredNode && (
-        <div className="absolute top-3 left-4 bg-gray-900/90 border border-emerald-500/30 backdrop-blur-md px-3 py-1.5 rounded-lg text-xs shadow-lg animate-fadeIn pointer-events-none">
-          <span className="font-bold text-white">{hoveredNode.label}</span>
-          <span className="text-emerald-400 font-mono ml-2 uppercase text-[10px]">
-            [{hoveredNode.status}]
-          </span>
+        <div className="absolute top-3 left-4 bg-gray-900/90 border border-emerald-500/30 backdrop-blur-md px-3 py-2 rounded-lg text-xs shadow-lg animate-fadeIn pointer-events-none" style={{ maxWidth: 320 }}>
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-white">{hoveredNode.label}</span>
+            <span className="text-emerald-400 font-mono uppercase text-[10px]">[{hoveredNode.status}]</span>
+          </div>
           <p className="text-white/60 text-[11px] mt-0.5">{hoveredNode.sublabel}</p>
+          {hoveredNode.task && (
+            <p className="text-white/85 text-[11px] mt-1.5 leading-relaxed" style={{ color: hoveredNode.status === 'failed' || hoveredNode.status === 'cancelled' ? '#f87171' : hoveredNode.status === 'completed' ? '#38bdf8' : '#00df81' }}>
+              ▸ {hoveredNode.task}
+            </p>
+          )}
         </div>
       )}
     </div>
