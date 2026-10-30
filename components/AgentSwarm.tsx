@@ -784,7 +784,9 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
 
   useEffect(() => {
     refresh();
-    const interval = setInterval(refresh, 3000);
+    // 2s cadence keeps run status (and therefore the Execution Map) ticking
+    // close to real-time alongside the SSE log stream.
+    const interval = setInterval(refresh, 2000);
     return () => clearInterval(interval);
   }, [refresh]);
 

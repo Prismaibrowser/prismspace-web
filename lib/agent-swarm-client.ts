@@ -245,6 +245,10 @@ export async function checkSwarmHealth(): Promise<boolean> {
  * Opens a Server-Sent Events connection that calls `onLine` for every new log
  * entry and `onDone` when the agent finishes (completed/failed/cancelled).
  *
+ * The stream is cursor-aware: the client passes the index of the next log line
+ * it has not consumed yet (`since`) and resumes from there on reconnect, so no
+ * lines are ever duplicated after an EventSource reconnection.
+ *
  * Returns a cleanup function that closes the EventSource.
  */
 export function streamAgentLogs(
@@ -252,27 +256,50 @@ export function streamAgentLogs(
   onLine: (line: string, index: number) => void,
   onDone: () => void,
 ): () => void {
-  const es = new EventSource(`${BASE}/agents/${agentId}/logs`);
+  let cursor = 0;
+  let closed = false;
+  let source: EventSource | null = null;
 
-  es.onmessage = (evt) => {
-    try {
-      const payload = JSON.parse(evt.data);
-      if (payload.done) {
-        onDone();
-        es.close();
-      } else if (payload.line !== undefined) {
-        onLine(payload.line as string, payload.index as number);
+  const connect = () => {
+    if (closed) return;
+    const es = new EventSource(`${BASE}/agents/${agentId}/logs?since=${cursor}`);
+    source = es;
+    es.onmessage = (evt) => {
+      try {
+        const payload = JSON.parse(evt.data);
+        if (payload.done) {
+          es.close();
+          source = null;
+          onDone();
+          return;
+        }
+        if (payload.line !== undefined) {
+          const index = Number(payload.index);
+          cursor = index + 1;
+          onLine(String(payload.line), index);
+        }
+      } catch {
+        // ignore malformed frames
       }
-    } catch {
-      // ignore malformed frames
-    }
+    };
+    es.onerror = () => {
+      // Closing during the error state prevents the browser's automatic retry,
+      // letting us resume from the correct cursor instead.
+      es.close();
+      source = null;
+      if (closed) return;
+      // Simple backoff before resuming from the cursor.
+      setTimeout(() => connect(), 1000);
+    };
   };
 
-  es.onerror = () => {
-    es.close();
-  };
+  connect();
 
-  return () => es.close();
+  return () => {
+    closed = true;
+    source?.close();
+    source = null;
+  };
 }
 
 // ── Status helpers ────────────────────────────────────────────────────────────

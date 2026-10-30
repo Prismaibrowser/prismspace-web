@@ -2554,13 +2554,13 @@ async def delete_agent(agent_id: str):
 async def stream_logs(agent_id: str, since: int = 0):
     """
     Server-Sent Events stream of agent log lines.
-    `since` is the index of the last log line already seen by the client.
+    `since` is the index of the first log line the client has not consumed yet.
     """
     if agent_id not in _agents:
         raise HTTPException(status_code=404, detail="Agent not found")
 
     async def _event_generator() -> AsyncGenerator[str, None]:
-        cursor = since
+        cursor = max(0, int(since))
         while True:
             lines = _logs.get(agent_id, [])
             if cursor < len(lines):
@@ -2574,7 +2574,9 @@ async def stream_logs(agent_id: str, since: int = 0):
                 yield f"data: {json.dumps({'done': True})}\n\n"
                 break
 
-            await asyncio.sleep(0.5)
+            # 100ms poll interval keeps the live tail genuinely real-time
+            # while staying cheap on the event loop.
+            await asyncio.sleep(0.1)
 
     return StreamingResponse(
         _event_generator(),
