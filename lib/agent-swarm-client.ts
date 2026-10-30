@@ -46,6 +46,8 @@ export interface SwarmAgent {
     arguments: Record<string, unknown>;
     reason: string;
   } | null;
+  /** Sub-agent identifiers spawned for this run, e.g. ["Agent-A", "Agent-B"]. */
+  selected_agents?: string[];
 }
 
 export interface AgentChatContextMessage {
